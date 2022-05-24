@@ -6,6 +6,10 @@ from telegram.ext import Updater, MessageHandler, Filters, CommandHandler
 from data import db_session
 from data.brends import Brends
 from data.goods import Goods
+from data.deliverymen import Deliverymen
+from settings import deliverymen
+from settings import add_deliverymen
+
 
 # бот @echoyandbot
 TOKEN = '5301614535:AAGAjCg3CopbFtvzUQVGLAkE9lOpNsbnX-Q'
@@ -27,6 +31,7 @@ def start(update, context):
 
 
 def handler(update, context):
+    # Главное меню
     if context.user_data['locality'][len(context.user_data['locality'])] == 'Старт':
         if update.message.text == 'Наличие':
             pass
@@ -43,10 +48,16 @@ def handler(update, context):
             markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
             context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Изменить линейку'
             update.message.reply_text('Выберите линейку для изменения', reply_markup=markup)
+        elif update.message.text == 'Изменить количество':
+            reply_keyboard = [[elem] for elem in deliverymen]
+            reply_keyboard.append(['Назад'])
+            markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+            context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Изменить количество доставщика'
+            update.message.reply_text('Выберите доставщика для изменения', reply_markup=markup)
+    #
+    # Добавление новой линейки
     elif context.user_data['locality'][len(context.user_data['locality'])] == 'Добавить линейку':
         if update.message.text == 'Назад':
-            # update.message.reply_text('Введите вкусы')
-            # context.user_data['locality'].pop(1)
             return start(update, context)
         else:
             context.user_data['new_good'] = {}
@@ -70,6 +81,8 @@ def handler(update, context):
             else:
                 update.message.reply_text('Ошибка')
             return start(update, context)
+    #
+    # Изменение линейки
     elif context.user_data['locality'][len(context.user_data['locality'])] == 'Изменить линейку':
         if update.message.text == 'Назад':
             return start(update, context)
@@ -166,6 +179,16 @@ def handler(update, context):
         else:
             update.message.reply_text('Ошибка')
         return start(update, context)
+    #
+    # Изменение количества у доставщика
+    elif context.user_data['locality'][len(context.user_data['locality'])] == 'Изменить количество доставщика':
+        if update.message.text == 'Назад':
+            return start(update, context)
+        elif update.message.text in deliverymen:
+            pass
+        else:
+            update.message.reply_text('Ошибка')
+            return start(update, context)
 
 
 def redact_good_title(id, old_title, new_title):
@@ -256,4 +279,5 @@ def main():
 
 if __name__ == '__main__':
     db_session.global_init(f"db/goods.db")
+    add_deliverymen(deliverymen)
     main()

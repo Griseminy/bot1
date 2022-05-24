@@ -18,6 +18,7 @@ class Goods(SqlAlchemyBase):
                            primary_key=True, autoincrement=True)
     title = sqlalchemy.Column(sqlalchemy.String, nullable=True)
     amount = sqlalchemy.Column(sqlalchemy.Integer, nullable=True)
-    brend_id = sqlalchemy.Column(sqlalchemy.String,
+    brend_id = sqlalchemy.Column(sqlalchemy.Integer,
                                 sqlalchemy.ForeignKey("brends.id"))
     brend = orm.relation('Brends')
+    goods = orm.relation("Delivery_goods", back_populates='good')
