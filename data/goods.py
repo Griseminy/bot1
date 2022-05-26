@@ -17,7 +17,6 @@ class Goods(SqlAlchemyBase):
     id = sqlalchemy.Column(sqlalchemy.Integer,
                            primary_key=True, autoincrement=True)
     title = sqlalchemy.Column(sqlalchemy.String, nullable=True)
-    amount = sqlalchemy.Column(sqlalchemy.Integer, nullable=True)
     brend_id = sqlalchemy.Column(sqlalchemy.Integer,
                                 sqlalchemy.ForeignKey("brends.id"))
     brend = orm.relation('Brends')
