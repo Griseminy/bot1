@@ -34,9 +34,7 @@ def start(update, context):
 def handler(update, context):
     # Главное меню
     if context.user_data['locality'][len(context.user_data['locality'])] == 'Старт':
-        if update.message.text == 'Наличие':
-            pass
-        elif update.message.text == 'Добавить линейку':
+        if update.message.text == 'Добавить линейку':
             reply_keyboard = [['Назад']]
             markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
             context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Добавить линейку'
@@ -55,6 +53,13 @@ def handler(update, context):
             markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
             context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Изменить количество доставщика'
             update.message.reply_text('Выберите доставщика для изменения', reply_markup=markup)
+        elif update.message.text == 'Наличие':
+            reply_keyboard = [[elem] for elem in deliverymen]
+            reply_keyboard.append(['Общее'])
+            reply_keyboard.append(['Назад'])
+            markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+            context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Наличие'
+            update.message.reply_text('Выберите доставщика', reply_markup=markup)
     #
     # Добавление новой линейки
     elif context.user_data['locality'][len(context.user_data['locality'])] == 'Добавить линейку':
@@ -367,6 +372,42 @@ def handler(update, context):
                               ['Нет']]
             markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
             update.message.reply_text(f'Ошибка. Выберите еще раз', reply_markup=markup)
+        #
+        # Наличие жидкости
+    elif context.user_data['locality'][len(context.user_data['locality'])] == 'Наличие':
+        db_sess = db_session.create_session()
+        if update.message.text == 'Назад':
+            return start(update, context)
+        elif update.message.text == 'Общее':
+            deliv_brends = db_sess.query(Brends).all()
+            text_amount = f'Общее наличие:\n'
+            for elem in deliv_brends:
+                text_amount += f'\n{elem.brend}\n'
+                goods = db_sess.query(Goods).filter(Goods.brend == elem).all()
+                for ele in goods:
+                    deliv_goods = db_sess.query(Delivery_goods).filter(Delivery_goods.good == ele).all()
+                    amount_good = 0
+                    for el in deliv_goods:
+                        amount_good += el.amount
+                    text_amount += f'{ele.title} {amount_good}\n'
+            update.message.reply_text(text_amount)
+        elif (update.message.text,) in db_sess.query(Deliverymen.name).all():
+            deliver = db_sess.query(Deliverymen).filter(Deliverymen.name == update.message.text).first()
+            deliv_brends = db_sess.query(Brends).all()
+            text_amount = f'Жидкость в наличии у {deliver.name}:\n'
+            for elem in deliv_brends:
+                text_amount += f'\n{elem.brend}\n'
+                goods = db_sess.query(Goods).filter(Goods.brend == elem).all()
+                for el in goods:
+                    deliv_good = db_sess.query(Delivery_goods).filter(Delivery_goods.good == el,
+                                                                      Delivery_goods.deliveryman ==
+                                                                      deliver).first()
+                    text_amount += f'{el.title} {deliv_good.amount}\n'
+            update.message.reply_text(text_amount)
+            return start(update, context)
+        else:
+            update.message.reply_text('Ошибка')
+        return start(update, context)
 
 
 def redact_good_title(id, old_title, new_title):
