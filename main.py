@@ -11,6 +11,7 @@ from data.deliverymen import Deliverymen
 from data.goods import Goods
 from settings import add_deliverymen
 from settings import deliverymen
+from settings import admin
 
 # бот @echoyandbot
 TOKEN = '5301614535:AAGAjCg3CopbFtvzUQVGLAkE9lOpNsbnX-Q'
@@ -22,391 +23,404 @@ logger = logging.getLogger(__name__)
 
 
 def start(update, context):
-    context.user_data['locality'] = {}
-    context.user_data['locality'][1] = 'Старт'
-    reply_keyboard = [['Наличие', 'Изменить количество'],
-                      ['Добавить линейку', 'Изменить линейку'],
-                      ['Статистика']]
-    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
-    update.message.reply_text('Нажмите кнопки снизу', reply_markup=markup)
+    if update.message.chat.id == admin:
+        context.user_data['locality'] = {}
+        context.user_data['locality'][1] = 'Старт'
+        reply_keyboard = [['Наличие', 'Изменить количество'],
+                          ['Добавить линейку', 'Изменить линейку'],
+                          ['Статистика']]
+        markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+        update.message.reply_text('Нажмите кнопки снизу', reply_markup=markup)
 
 
 def handler(update, context):
-    # Главное меню
-    if context.user_data['locality'][len(context.user_data['locality'])] == 'Старт':
-        if update.message.text == 'Добавить линейку':
-            reply_keyboard = [['Назад']]
-            markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
-            context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Добавить линейку'
-            update.message.reply_text('Введите название и цену, каждый с новой строки', reply_markup=markup)
-        elif update.message.text == 'Изменить линейку':
-            db_sess = db_session.create_session()
-            brends = db_sess.query(Brends).all()
-            reply_keyboard = [[elem.brend] for elem in brends]
-            reply_keyboard.append(['Назад'])
-            markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
-            context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Изменить линейку'
-            update.message.reply_text('Выберите линейку для изменения', reply_markup=markup)
-        elif update.message.text == 'Изменить количество':
-            reply_keyboard = [[elem] for elem in deliverymen]
-            reply_keyboard.append(['Назад'])
-            markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
-            context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Изменить количество доставщика'
-            update.message.reply_text('Выберите доставщика для изменения', reply_markup=markup)
-        elif update.message.text == 'Наличие':
-            reply_keyboard = [[elem] for elem in deliverymen]
-            reply_keyboard.append(['Общее'])
-            reply_keyboard.append(['Назад'])
-            markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
-            context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Наличие'
-            update.message.reply_text('Выберите доставщика', reply_markup=markup)
-    #
-    # Добавление новой линейки
-    elif context.user_data['locality'][len(context.user_data['locality'])] == 'Добавить линейку':
-        if update.message.text == 'Назад':
-            return start(update, context)
-        else:
-            context.user_data['new_good'] = {}
-            context.user_data['new_good'][0] = update.message.text.split('\n')[0]
-            context.user_data['new_good'][1] = int(update.message.text.split('\n')[1])
-            db_sess = db_session.create_session()
-            brend = Brends(brend=context.user_data['new_good'][0], price=int(context.user_data['new_good'][1]))
-            db_sess.add(brend)
-            db_sess.commit()
-            context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Добавить вкус новой линейки'
-            reply_keyboard = [['Отмена']]
-            markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
-            update.message.reply_text(f'Введите вкусы {context.user_data["new_good"][0]}, каждый с новой строки',
-                                      reply_markup=markup)
-    elif context.user_data['locality'][len(context.user_data['locality'])] == 'Добавить вкус новой линейки':
-        if update.message.text == 'Отмена':
-            return start(update, context)
-        else:
-            if add_goods(context.user_data['new_good'][0], update.message.text.split('\n')):
-                update.message.reply_text('Бренд и вкусы успешно добавлены')
-            else:
-                update.message.reply_text('Ошибка')
-            return start(update, context)
-    #
-    # Изменение линейки
-    elif context.user_data['locality'][len(context.user_data['locality'])] == 'Изменить линейку':
-        if update.message.text == 'Назад':
-            return start(update, context)
-        else:
-            brend_id = check_brend(update.message.text)
-            if brend_id:
-                context.user_data['redactor_brend'] = {}
-                context.user_data['redactor_brend'][0] = brend_id
-                reply_keyboard = [['Цену'],
-                                  ['Название'],
-                                  ['Изменить вкус'],
-                                  ['Добавить вкус'],
-                                  ['Отмена']]
-                context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Выбор изменения в линейке'
-                markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
-                update.message.reply_text('Что вы хотите изменить?', reply_markup=markup)
-            else:
-                update.message.reply_text('Линейка не найдена')
+    try:
+        if update.message.chat.id == admin:
+            # Главное меню
+            if context.user_data['locality'][len(context.user_data['locality'])] == 'Старт':
+                if update.message.text == 'Добавить линейку':
+                    reply_keyboard = [['Назад']]
+                    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Добавить линейку'
+                    update.message.reply_text('Введите название и цену, каждый с новой строки', reply_markup=markup)
+                elif update.message.text == 'Изменить линейку':
+                    db_sess = db_session.create_session()
+                    brends = db_sess.query(Brends).all()
+                    reply_keyboard = [[elem.brend] for elem in brends]
+                    reply_keyboard.append(['Назад'])
+                    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Изменить линейку'
+                    update.message.reply_text('Выберите линейку для изменения', reply_markup=markup)
+                elif update.message.text == 'Изменить количество':
+                    reply_keyboard = [[elem] for elem in deliverymen]
+                    reply_keyboard.append(['Назад'])
+                    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+                    context.user_data['locality'][
+                        len(context.user_data['locality']) + 1] = 'Изменить количество доставщика'
+                    update.message.reply_text('Выберите доставщика для изменения', reply_markup=markup)
+                elif update.message.text == 'Наличие':
+                    reply_keyboard = [[elem] for elem in deliverymen]
+                    reply_keyboard.append(['Общее'])
+                    reply_keyboard.append(['Назад'])
+                    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Наличие'
+                    update.message.reply_text('Выберите доставщика', reply_markup=markup)
+            #
+            # Добавление новой линейки
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Добавить линейку':
+                if update.message.text == 'Назад':
+                    return start(update, context)
+                else:
+                    context.user_data['new_good'] = {}
+                    context.user_data['new_good'][0] = update.message.text.split('\n')[0]
+                    context.user_data['new_good'][1] = int(update.message.text.split('\n')[1])
+                    db_sess = db_session.create_session()
+                    brend = Brends(brend=context.user_data['new_good'][0], price=int(context.user_data['new_good'][1]))
+                    db_sess.add(brend)
+                    db_sess.commit()
+                    context.user_data['locality'][
+                        len(context.user_data['locality']) + 1] = 'Добавить вкус новой линейки'
+                    reply_keyboard = [['Отмена']]
+                    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+                    update.message.reply_text(
+                        f'Введите вкусы {context.user_data["new_good"][0]}, каждый с новой строки',
+                        reply_markup=markup)
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Добавить вкус новой линейки':
+                if update.message.text == 'Отмена':
+                    return start(update, context)
+                else:
+                    if add_goods(context.user_data['new_good'][0], update.message.text.split('\n')):
+                        update.message.reply_text('Бренд и вкусы успешно добавлены')
+                    else:
+                        update.message.reply_text('Ошибка')
+                    return start(update, context)
+            #
+            # Изменение линейки
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Изменить линейку':
+                if update.message.text == 'Назад':
+                    return start(update, context)
+                else:
+                    brend_id = check_brend(update.message.text)
+                    if brend_id:
+                        context.user_data['redactor_brend'] = {}
+                        context.user_data['redactor_brend'][0] = brend_id
+                        reply_keyboard = [['Цену'],
+                                          ['Название'],
+                                          ['Изменить вкус'],
+                                          ['Добавить вкус'],
+                                          ['Отмена']]
+                        context.user_data['locality'][
+                            len(context.user_data['locality']) + 1] = 'Выбор изменения в линейке'
+                        markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+                        update.message.reply_text('Что вы хотите изменить?', reply_markup=markup)
+                    else:
+                        update.message.reply_text('Линейка не найдена')
+                        return start(update, context)
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Выбор изменения в линейке':
+                if update.message.text == 'Отмена':
+                    return start(update, context)
+                elif update.message.text == 'Цену':
+                    reply_keyboard = [['Отмена']]
+                    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Изменение цены в линейке'
+                    update.message.reply_text('Введите новую цену', reply_markup=markup)
+                elif update.message.text == 'Название':
+                    reply_keyboard = [['Отмена']]
+                    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+                    context.user_data['locality'][
+                        len(context.user_data['locality']) + 1] = 'Изменение названия в линейке'
+                    update.message.reply_text('Введите новое название', reply_markup=markup)
+                elif update.message.text == 'Изменить вкус':
+                    db_sess = db_session.create_session()
+                    goods = db_sess.query(Goods.title).filter(
+                        Goods.brend_id == context.user_data['redactor_brend'][0]).all()
+                    reply_keyboard = [[elem.title] for elem in goods]
+                    reply_keyboard.append(['Отмена'])
+                    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Изменить вкус'
+                    update.message.reply_text('Выберите вкус для изменения', reply_markup=markup)
+                elif update.message.text == 'Добавить вкус':
+                    reply_keyboard = [['Отмена']]
+                    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Добавить вкус'
+                    update.message.reply_text('Введите название вкуса', reply_markup=markup)
+                else:
+                    reply_keyboard = [['Цену'],
+                                      ['Название'],
+                                      ['Изменить вкус'],
+                                      ['Добавить вкус'],
+                                      ['Отмена']]
+                    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+                    update.message.reply_text('Нажмите кнопку', reply_markup=markup)
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Изменение цены в линейке':
+                if update.message.text == 'Отмена':
+                    return start(update, context)
+                if redact_brend_price(context.user_data['redactor_brend'][0], int(update.message.text)):
+                    update.message.reply_text('Цена успешно изменена')
+                else:
+                    update.message.reply_text('Ошибка')
                 return start(update, context)
-    elif context.user_data['locality'][len(context.user_data['locality'])] == 'Выбор изменения в линейке':
-        if update.message.text == 'Отмена':
-            return start(update, context)
-        elif update.message.text == 'Цену':
-            reply_keyboard = [['Отмена']]
-            markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
-            context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Изменение цены в линейке'
-            update.message.reply_text('Введите новую цену', reply_markup=markup)
-        elif update.message.text == 'Название':
-            reply_keyboard = [['Отмена']]
-            markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
-            context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Изменение названия в линейке'
-            update.message.reply_text('Введите новое название', reply_markup=markup)
-        elif update.message.text == 'Изменить вкус':
-            db_sess = db_session.create_session()
-            goods = db_sess.query(Goods.title).filter(Goods.brend_id == context.user_data['redactor_brend'][0]).all()
-            reply_keyboard = [[elem.title] for elem in goods]
-            reply_keyboard.append(['Отмена'])
-            markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
-            context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Изменить вкус'
-            update.message.reply_text('Выберите вкус для изменения', reply_markup=markup)
-        elif update.message.text == 'Добавить вкус':
-            reply_keyboard = [['Отмена']]
-            markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
-            context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Добавить вкус'
-            update.message.reply_text('Введите название вкуса', reply_markup=markup)
-        else:
-            reply_keyboard = [['Цену'],
-                              ['Название'],
-                              ['Изменить вкус'],
-                              ['Добавить вкус'],
-                              ['Отмена']]
-            markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
-            update.message.reply_text('Нажмите кнопку', reply_markup=markup)
-    elif context.user_data['locality'][len(context.user_data['locality'])] == 'Изменение цены в линейке':
-        if update.message.text == 'Отмена':
-            return start(update, context)
-        if redact_brend_price(context.user_data['redactor_brend'][0], int(update.message.text)):
-            update.message.reply_text('Цена успешно изменена')
-        else:
-            update.message.reply_text('Ошибка')
-        return start(update, context)
-    elif context.user_data['locality'][len(context.user_data['locality'])] == 'Изменение названия в линейке':
-        if update.message.text == 'Отмена':
-            return start(update, context)
-        if redact_brend_title(context.user_data['redactor_brend'][0], update.message.text):
-            update.message.reply_text('Название успешно изменено')
-        else:
-            update.message.reply_text('Ошибка')
-        return start(update, context)
-    elif context.user_data['locality'][len(context.user_data['locality'])] == 'Изменить вкус':
-        if update.message.text == 'Отмена':
-            return start(update, context)
-        else:
-            context.user_data['redactor_brend'][1] = update.message.text
-            context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Новое название вкуса'
-            reply_keyboard = [['Отмена']]
-            markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
-            update.message.reply_text('Введите новое название вкуса', reply_markup=markup)
-    elif context.user_data['locality'][len(context.user_data['locality'])] == 'Добавить вкус':
-        if update.message.text == 'Отмена':
-            return start(update, context)
-        else:
-            if add_good(context.user_data['redactor_brend'][0], update.message.text):
-                update.message.reply_text('Вкус успешно добавлен')
-            else:
-                update.message.reply_text('Ошибка')
-        return start(update, context)
-    elif context.user_data['locality'][len(context.user_data['locality'])] == 'Новое название вкуса':
-        if update.message.text == 'Отмена':
-            return start(update, context)
-        if redact_good_title(context.user_data['redactor_brend'][0], context.user_data['redactor_brend'][1],
-                             update.message.text):
-            update.message.reply_text('Название успешно изменено')
-        else:
-            update.message.reply_text('Ошибка')
-        return start(update, context)
-    #
-    # Изменение количества у доставщика
-    elif context.user_data['locality'][len(context.user_data['locality'])] == 'Изменить количество доставщика':
-        context.user_data['add_amount'] = {'delivery_good_id': None, 'brend_id': None,
-                                           'good_id': None, 'deliveryman_id': None, 'amount': None}
-        db_sess = db_session.create_session()
-        if update.message.text == 'Назад':
-            return start(update, context)
-        elif (update.message.text,) in db_sess.query(Deliverymen.name).all():
-            deliver = db_sess.query(Deliverymen).filter(Deliverymen.name == update.message.text).first()
-            context.user_data['add_amount']['deliveryman_id'] = deliver.id
-            context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Выбор изменения доставщика'
-            reply_keyboard = [['Убавить товар'],
-                              ['Добавить товар'],
-                              ['Отмена']]
-            markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
-            update.message.reply_text('Выберите, что хотите сделать', reply_markup=markup)
-        else:
-            update.message.reply_text('Ошибка')
-            return start(update, context)
-    elif context.user_data['locality'][len(context.user_data['locality'])] == 'Выбор изменения доставщика':
-        if update.message.text == 'Отмена':
-            return start(update, context)
-        elif update.message.text == 'Убавить товар':
-            db_sess = db_session.create_session()
-            brends = db_sess.query(Brends).all()
-            reply_keyboard = [[elem.brend] for elem in brends]
-            reply_keyboard.append(['Отмена'])
-            markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
-            context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Убавить товар'
-            update.message.reply_text('Выберите линейку для изменения', reply_markup=markup)
-        elif update.message.text == 'Добавить товар':
-            db_sess = db_session.create_session()
-            brends = db_sess.query(Brends).all()
-            reply_keyboard = [[elem.brend] for elem in brends]
-            reply_keyboard.append(['Отмена'])
-            markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
-            context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Добавить товар'
-            update.message.reply_text('Выберите линейку для изменения', reply_markup=markup)
-        else:
-            update.message.reply_text('Ошибка')
-            return start(update, context)
-    elif context.user_data['locality'][len(context.user_data['locality'])] == 'Убавить товар':
-        db_sess = db_session.create_session()
-        if update.message.text == 'Отмена':
-            return start(update, context)
-        elif (update.message.text,) in db_sess.query(Brends.brend).all():
-            brend = db_sess.query(Brends).filter(Brends.brend == update.message.text).first()
-            context.user_data['add_amount']['brend_id'] = brend.id
-            goods = db_sess.query(Goods).filter(Goods.brend == brend).all()
-            reply_keyboard = [[elem.title] for elem in goods]
-            reply_keyboard.append(['Отмена'])
-            markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
-            context.user_data['locality'][len(context.user_data['locality']) + 1] = \
-                'Выбрать товар доставщика убавления'
-            update.message.reply_text('Выберите товар линейки', reply_markup=markup)
-        else:
-            update.message.reply_text('Ошибка')
-            return start(update, context)
-    elif context.user_data['locality'][len(context.user_data['locality'])] == 'Добавить товар':
-        db_sess = db_session.create_session()
-        if update.message.text == 'Отмена':
-            return start(update, context)
-        elif (update.message.text,) in db_sess.query(Brends.brend).all():
-            brend = db_sess.query(Brends).filter(Brends.brend == update.message.text).first()
-            context.user_data['add_amount']['brend_id'] = brend.id
-            goods = db_sess.query(Goods).filter(Goods.brend == brend).all()
-            reply_keyboard = [[elem.title] for elem in goods]
-            reply_keyboard.append(['Отмена'])
-            markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
-            context.user_data['locality'][len(context.user_data['locality']) + 1] = \
-                'Выбрать товар доставщика добавления'
-            update.message.reply_text('Выберите товар линейки', reply_markup=markup)
-        else:
-            update.message.reply_text('Ошибка')
-            return start(update, context)
-    elif context.user_data['locality'][len(context.user_data['locality'])] == 'Выбрать товар доставщика убавления':
-        db_sess = db_session.create_session()
-        if update.message.text == 'Отмена':
-            return start(update, context)
-        elif (update.message.text,) in db_sess.query(Goods.title).all():
-            good = db_sess.query(Goods).filter(Goods.title == update.message.text,
-                                               Goods.brend_id == context.user_data['add_amount']
-                                               ['brend_id']).first()
-            good_deliver = db_sess.query(Delivery_goods).filter(Delivery_goods.good_id == good.id,
-                                                                Delivery_goods.deliveryman_id ==
-                                                                context.user_data['add_amount']
-                                                                ['deliveryman_id']).first()
-            context.user_data['add_amount']['delivery_good_id'] = good_deliver.id
-            context.user_data['add_amount']['amount'] = good_deliver.amount
-            context.user_data['locality'][len(context.user_data['locality']) + 1] = \
-                'Ввод количества убавления'
-            reply_keyboard = [['Отмена']]
-            markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
-            update.message.reply_text(f"Введите количество товара"
-                                      f" меньше {context.user_data['add_amount']['amount']}",
-                                      reply_markup=markup)
-        else:
-            update.message.reply_text('Ошибка')
-            return start(update, context)
-    elif context.user_data['locality'][len(context.user_data['locality'])] == \
-            'Выбрать товар доставщика добавления':
-        db_sess = db_session.create_session()
-        if update.message.text == 'Отмена':
-            return start(update, context)
-        elif (update.message.text,) in db_sess.query(Goods.title).all():
-            good = db_sess.query(Goods).filter(Goods.title == update.message.text,
-                                               Goods.brend_id == context.user_data['add_amount']
-                                               ['brend_id']).first()
-            good_deliver = db_sess.query(Delivery_goods).filter(Delivery_goods.good_id == good.id,
-                                                                Delivery_goods.deliveryman_id ==
-                                                                context.user_data['add_amount']
-                                                                ['deliveryman_id']).first()
-            context.user_data['add_amount']['delivery_good_id'] = good_deliver.id
-            context.user_data['add_amount']['amount'] = good_deliver.amount
-            context.user_data['locality'][len(context.user_data['locality']) + 1] = \
-                'Ввод количества добавления'
-            reply_keyboard = [['Отмена']]
-            markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
-            update.message.reply_text('Введите количество товара',
-                                      reply_markup=markup)
-        else:
-            update.message.reply_text('Ошибка')
-            return start(update, context)
-    elif context.user_data['locality'][len(context.user_data['locality'])] == 'Ввод количества убавления':
-        try:
-            if update.message.text == 'Отмена':
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Изменение названия в линейке':
+                if update.message.text == 'Отмена':
+                    return start(update, context)
+                if redact_brend_title(context.user_data['redactor_brend'][0], update.message.text):
+                    update.message.reply_text('Название успешно изменено')
+                else:
+                    update.message.reply_text('Ошибка')
                 return start(update, context)
-            elif 0 < int(update.message.text) <= context.user_data['add_amount']['amount']:
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Изменить вкус':
+                if update.message.text == 'Отмена':
+                    return start(update, context)
+                else:
+                    context.user_data['redactor_brend'][1] = update.message.text
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Новое название вкуса'
+                    reply_keyboard = [['Отмена']]
+                    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+                    update.message.reply_text('Введите новое название вкуса', reply_markup=markup)
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Добавить вкус':
+                if update.message.text == 'Отмена':
+                    return start(update, context)
+                else:
+                    if add_good(context.user_data['redactor_brend'][0], update.message.text):
+                        update.message.reply_text('Вкус успешно добавлен')
+                    else:
+                        update.message.reply_text('Ошибка')
+                return start(update, context)
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Новое название вкуса':
+                if update.message.text == 'Отмена':
+                    return start(update, context)
+                if redact_good_title(context.user_data['redactor_brend'][0], context.user_data['redactor_brend'][1],
+                                     update.message.text):
+                    update.message.reply_text('Название успешно изменено')
+                else:
+                    update.message.reply_text('Ошибка')
+                return start(update, context)
+            #
+            # Изменение количества у доставщика
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Изменить количество доставщика':
+                context.user_data['add_amount'] = {'delivery_good_id': None, 'brend_id': None,
+                                                   'good_id': None, 'deliveryman_id': None, 'amount': None}
                 db_sess = db_session.create_session()
-                good_deliver = db_sess.query(Delivery_goods).filter(Delivery_goods.id ==
-                                                                    context.user_data['add_amount']
-                                                                    ['delivery_good_id']).first()
-                good_deliver.amount -= int(update.message.text)
-                db_sess.add(good_deliver)
-                db_sess.commit()
-                context.user_data['locality'][len(context.user_data['locality']) + 1] = \
-                    'Согласие на возврат к вкусам'
-                reply_keyboard = [['Да'],
-                                  ['Нет']]
-                markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
-                update.message.reply_text('Хотите ещё изменить количество у других вкусов?', reply_markup=markup)
-            else:
-                update.message.reply_text(f'Введённое количество превышает количество товара или'
-                                          f' меньше 0. Введите его снова')
-        except:
-            update.message.reply_text(f'Ошибка. Введите еще раз')
-    elif context.user_data['locality'][len(context.user_data['locality'])] == 'Ввод количества добавления':
-        try:
-            if update.message.text == 'Отмена':
-                return start(update, context)
-            else:
+                if update.message.text == 'Назад':
+                    return start(update, context)
+                elif (update.message.text,) in db_sess.query(Deliverymen.name).all():
+                    deliver = db_sess.query(Deliverymen).filter(Deliverymen.name == update.message.text).first()
+                    context.user_data['add_amount']['deliveryman_id'] = deliver.id
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Выбор изменения доставщика'
+                    reply_keyboard = [['Убавить товар'],
+                                      ['Добавить товар'],
+                                      ['Отмена']]
+                    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+                    update.message.reply_text('Выберите, что хотите сделать', reply_markup=markup)
+                else:
+                    update.message.reply_text('Ошибка')
+                    return start(update, context)
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Выбор изменения доставщика':
+                if update.message.text == 'Отмена':
+                    return start(update, context)
+                elif update.message.text == 'Убавить товар':
+                    db_sess = db_session.create_session()
+                    brends = db_sess.query(Brends).all()
+                    reply_keyboard = [[elem.brend] for elem in brends]
+                    reply_keyboard.append(['Отмена'])
+                    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Убавить товар'
+                    update.message.reply_text('Выберите линейку для изменения', reply_markup=markup)
+                elif update.message.text == 'Добавить товар':
+                    db_sess = db_session.create_session()
+                    brends = db_sess.query(Brends).all()
+                    reply_keyboard = [[elem.brend] for elem in brends]
+                    reply_keyboard.append(['Отмена'])
+                    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Добавить товар'
+                    update.message.reply_text('Выберите линейку для изменения', reply_markup=markup)
+                else:
+                    update.message.reply_text('Ошибка')
+                    return start(update, context)
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Убавить товар':
                 db_sess = db_session.create_session()
-                good_deliver = db_sess.query(Delivery_goods).filter(Delivery_goods.id ==
-                                                                    context.user_data['add_amount']
-                                                                    ['delivery_good_id']).first()
-                good_deliver.amount += int(update.message.text)
-                db_sess.add(good_deliver)
-                db_sess.commit()
-                context.user_data['locality'][len(context.user_data['locality']) + 1] = \
-                    'Согласие на возврат к вкусам'
-                reply_keyboard = [['Да'],
-                                  ['Нет']]
-                markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
-                update.message.reply_text(f'Успешно. Хотите проделать то'
-                                          f' же действие с другими вкусами?', reply_markup=markup)
-        except Exception as e:
-            update.message.reply_text(f"Ошибка. Введите еще раз")
-    elif context.user_data['locality'][len(context.user_data['locality'])] == 'Согласие на возврат к вкусам':
-        if update.message.text == 'Да':
-            db_sess = db_session.create_session()
-            context.user_data['locality'] = \
-                dict(itertools.islice(context.user_data['locality'].items(),
-                                      len(context.user_data['locality']) - 2))
-            goods = db_sess.query(Goods).filter(Goods.brend_id == context.user_data['add_amount']
-            ['brend_id']).all()
-            reply_keyboard = [[elem.title] for elem in goods]
-            reply_keyboard.append(['Отмена'])
-            markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
-            update.message.reply_text(f"Выберите товар линейки", reply_markup=markup)
-        elif update.message.text == 'Нет':
-            return start(update, context)
-        else:
-            reply_keyboard = [['Да'],
-                              ['Нет']]
-            markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
-            update.message.reply_text(f'Ошибка. Выберите еще раз', reply_markup=markup)
-        #
-        # Наличие жидкости
-    elif context.user_data['locality'][len(context.user_data['locality'])] == 'Наличие':
-        db_sess = db_session.create_session()
-        if update.message.text == 'Назад':
-            return start(update, context)
-        elif update.message.text == 'Общее':
-            deliv_brends = db_sess.query(Brends).all()
-            text_amount = f'Общее наличие:\n'
-            for elem in deliv_brends:
-                text_amount += f'\n{elem.brend}\n'
-                goods = db_sess.query(Goods).filter(Goods.brend == elem).all()
-                for ele in goods:
-                    deliv_goods = db_sess.query(Delivery_goods).filter(Delivery_goods.good == ele).all()
-                    amount_good = 0
-                    for el in deliv_goods:
-                        amount_good += el.amount
-                    text_amount += f'{ele.title} {amount_good}\n'
-            update.message.reply_text(text_amount)
-        elif (update.message.text,) in db_sess.query(Deliverymen.name).all():
-            deliver = db_sess.query(Deliverymen).filter(Deliverymen.name == update.message.text).first()
-            deliv_brends = db_sess.query(Brends).all()
-            text_amount = f'Жидкость в наличии у {deliver.name}:\n'
-            for elem in deliv_brends:
-                text_amount += f'\n{elem.brend}\n'
-                goods = db_sess.query(Goods).filter(Goods.brend == elem).all()
-                for el in goods:
-                    deliv_good = db_sess.query(Delivery_goods).filter(Delivery_goods.good == el,
-                                                                      Delivery_goods.deliveryman ==
-                                                                      deliver).first()
-                    text_amount += f'{el.title} {deliv_good.amount}\n'
-            update.message.reply_text(text_amount)
-            return start(update, context)
-        else:
-            update.message.reply_text('Ошибка')
+                if update.message.text == 'Отмена':
+                    return start(update, context)
+                elif (update.message.text,) in db_sess.query(Brends.brend).all():
+                    brend = db_sess.query(Brends).filter(Brends.brend == update.message.text).first()
+                    context.user_data['add_amount']['brend_id'] = brend.id
+                    goods = db_sess.query(Goods).filter(Goods.brend == brend).all()
+                    reply_keyboard = [[elem.title] for elem in goods]
+                    reply_keyboard.append(['Отмена'])
+                    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = \
+                        'Выбрать товар доставщика убавления'
+                    update.message.reply_text('Выберите товар линейки', reply_markup=markup)
+                else:
+                    update.message.reply_text('Ошибка')
+                    return start(update, context)
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Добавить товар':
+                db_sess = db_session.create_session()
+                if update.message.text == 'Отмена':
+                    return start(update, context)
+                elif (update.message.text,) in db_sess.query(Brends.brend).all():
+                    brend = db_sess.query(Brends).filter(Brends.brend == update.message.text).first()
+                    context.user_data['add_amount']['brend_id'] = brend.id
+                    goods = db_sess.query(Goods).filter(Goods.brend == brend).all()
+                    reply_keyboard = [[elem.title] for elem in goods]
+                    reply_keyboard.append(['Отмена'])
+                    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = \
+                        'Выбрать товар доставщика добавления'
+                    update.message.reply_text('Выберите товар линейки', reply_markup=markup)
+                else:
+                    update.message.reply_text('Ошибка')
+                    return start(update, context)
+            elif context.user_data['locality'][
+                len(context.user_data['locality'])] == 'Выбрать товар доставщика убавления':
+                db_sess = db_session.create_session()
+                if update.message.text == 'Отмена':
+                    return start(update, context)
+                elif (update.message.text,) in db_sess.query(Goods.title).all():
+                    good = db_sess.query(Goods).filter(Goods.title == update.message.text,
+                                                       Goods.brend_id == context.user_data['add_amount']
+                                                       ['brend_id']).first()
+                    good_deliver = db_sess.query(Delivery_goods).filter(Delivery_goods.good_id == good.id,
+                                                                        Delivery_goods.deliveryman_id ==
+                                                                        context.user_data['add_amount']
+                                                                        ['deliveryman_id']).first()
+                    context.user_data['add_amount']['delivery_good_id'] = good_deliver.id
+                    context.user_data['add_amount']['amount'] = good_deliver.amount
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = \
+                        'Ввод количества убавления'
+                    reply_keyboard = [['Отмена']]
+                    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+                    update.message.reply_text(f"Введите количество товара"
+                                              f" меньше {context.user_data['add_amount']['amount']}",
+                                              reply_markup=markup)
+                else:
+                    update.message.reply_text('Ошибка')
+                    return start(update, context)
+            elif context.user_data['locality'][len(context.user_data['locality'])] == \
+                    'Выбрать товар доставщика добавления':
+                db_sess = db_session.create_session()
+                if update.message.text == 'Отмена':
+                    return start(update, context)
+                elif (update.message.text,) in db_sess.query(Goods.title).all():
+                    good = db_sess.query(Goods).filter(Goods.title == update.message.text,
+                                                       Goods.brend_id == context.user_data['add_amount']
+                                                       ['brend_id']).first()
+                    good_deliver = db_sess.query(Delivery_goods).filter(Delivery_goods.good_id == good.id,
+                                                                        Delivery_goods.deliveryman_id ==
+                                                                        context.user_data['add_amount']
+                                                                        ['deliveryman_id']).first()
+                    context.user_data['add_amount']['delivery_good_id'] = good_deliver.id
+                    context.user_data['add_amount']['amount'] = good_deliver.amount
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = \
+                        'Ввод количества добавления'
+                    reply_keyboard = [['Отмена']]
+                    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+                    update.message.reply_text('Введите количество товара',
+                                              reply_markup=markup)
+                else:
+                    update.message.reply_text('Ошибка')
+                    return start(update, context)
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Ввод количества убавления':
+                try:
+                    if update.message.text == 'Отмена':
+                        return start(update, context)
+                    elif 0 < int(update.message.text) <= context.user_data['add_amount']['amount']:
+                        db_sess = db_session.create_session()
+                        good_deliver = db_sess.query(Delivery_goods).filter(Delivery_goods.id ==
+                                                                            context.user_data['add_amount']
+                                                                            ['delivery_good_id']).first()
+                        good_deliver.amount -= int(update.message.text)
+                        db_sess.add(good_deliver)
+                        db_sess.commit()
+                        context.user_data['locality'][len(context.user_data['locality']) + 1] = \
+                            'Согласие на возврат к вкусам'
+                        reply_keyboard = [['Да'],
+                                          ['Нет']]
+                        markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+                        update.message.reply_text('Хотите ещё изменить количество у других вкусов?',
+                                                  reply_markup=markup)
+                    else:
+                        update.message.reply_text(f'Введённое количество превышает количество товара или'
+                                                  f' меньше 0. Введите его снова')
+                except:
+                    update.message.reply_text(f'Ошибка. Введите еще раз')
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Ввод количества добавления':
+                try:
+                    if update.message.text == 'Отмена':
+                        return start(update, context)
+                    else:
+                        db_sess = db_session.create_session()
+                        good_deliver = db_sess.query(Delivery_goods).filter(Delivery_goods.id ==
+                                                                            context.user_data['add_amount']
+                                                                            ['delivery_good_id']).first()
+                        good_deliver.amount += int(update.message.text)
+                        db_sess.add(good_deliver)
+                        db_sess.commit()
+                        context.user_data['locality'][len(context.user_data['locality']) + 1] = \
+                            'Согласие на возврат к вкусам'
+                        reply_keyboard = [['Да'],
+                                          ['Нет']]
+                        markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+                        update.message.reply_text(f'Успешно. Хотите проделать то'
+                                                  f' же действие с другими вкусами?', reply_markup=markup)
+                except Exception as e:
+                    update.message.reply_text(f"Ошибка. Введите еще раз")
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Согласие на возврат к вкусам':
+                if update.message.text == 'Да':
+                    db_sess = db_session.create_session()
+                    context.user_data['locality'] = \
+                        dict(itertools.islice(context.user_data['locality'].items(),
+                                              len(context.user_data['locality']) - 2))
+                    goods = db_sess.query(Goods).filter(Goods.brend_id == context.user_data['add_amount']
+                    ['brend_id']).all()
+                    reply_keyboard = [[elem.title] for elem in goods]
+                    reply_keyboard.append(['Отмена'])
+                    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+                    update.message.reply_text(f"Выберите товар линейки", reply_markup=markup)
+                elif update.message.text == 'Нет':
+                    return start(update, context)
+                else:
+                    reply_keyboard = [['Да'],
+                                      ['Нет']]
+                    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+                    update.message.reply_text(f'Ошибка. Выберите еще раз', reply_markup=markup)
+                #
+                # Наличие жидкости
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Наличие':
+                db_sess = db_session.create_session()
+                if update.message.text == 'Назад':
+                    return start(update, context)
+                elif update.message.text == 'Общее':
+                    deliv_brends = db_sess.query(Brends).all()
+                    text_amount = f'Общее наличие:\n'
+                    for elem in deliv_brends:
+                        text_amount += f'\n{elem.brend}\n'
+                        goods = db_sess.query(Goods).filter(Goods.brend == elem).all()
+                        for ele in goods:
+                            deliv_goods = db_sess.query(Delivery_goods).filter(Delivery_goods.good == ele).all()
+                            amount_good = 0
+                            for el in deliv_goods:
+                                amount_good += el.amount
+                            text_amount += f'{ele.title} {amount_good}\n'
+                    update.message.reply_text(text_amount)
+                elif (update.message.text,) in db_sess.query(Deliverymen.name).all():
+                    deliver = db_sess.query(Deliverymen).filter(Deliverymen.name == update.message.text).first()
+                    deliv_brends = db_sess.query(Brends).all()
+                    text_amount = f'Жидкость в наличии у {deliver.name}:\n'
+                    for elem in deliv_brends:
+                        text_amount += f'\n{elem.brend}\n'
+                        goods = db_sess.query(Goods).filter(Goods.brend == elem).all()
+                        for el in goods:
+                            deliv_good = db_sess.query(Delivery_goods).filter(Delivery_goods.good == el,
+                                                                              Delivery_goods.deliveryman ==
+                                                                              deliver).first()
+                            text_amount += f'{el.title} {deliv_good.amount}\n'
+                    update.message.reply_text(text_amount)
+                    return start(update, context)
+                else:
+                    update.message.reply_text('Ошибка')
+                return start(update, context)
+    except:
         return start(update, context)
 
 
@@ -453,6 +467,11 @@ def add_good(id, title):
         good = Goods(title=title, brend=brend)
         db_sess.add(good)
         db_sess.commit()
+        good = db_sess.query(Goods).filter(Goods.brend == brend, Goods.title == title).first()
+        for el in db_sess.query(Deliverymen).all():
+            delivery_good = Delivery_goods(amount=0, good=good, deliveryman=el)
+            db_sess.add(delivery_good)
+            db_sess.commit()
         return True
 
 
