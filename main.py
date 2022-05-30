@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 def start(update, context):
-    if update.message.chat.id == admin:
+    if update.message.chat.id == 123:
         context.user_data['locality'] = {}
         context.user_data['locality'][1] = 'Старт'
         reply_keyboard = [['Наличие', 'Изменить количество'],
@@ -31,11 +31,21 @@ def start(update, context):
                           ['Статистика']]
         markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
         update.message.reply_text('Нажмите кнопки снизу', reply_markup=markup)
+    elif update.message.chat.id == admin:
+        context.user_data['locality'] = {}
+        context.user_data['locality'][1] = 'Старт'
+        db_sess = db_session.create_session()
+        deliveryman = db_sess.query(Deliverymen).filter(Deliverymen.user_id == update.message.chat.id).first()
+        context.user_data['user_id_db'] = deliveryman.id
+        reply_keyboard = [['Продать', 'Налчичие'],
+                          ['Статистика', 'Нужно перевести']]
+        markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+        update.message.reply_text('Нажмите кнопки снизу', reply_markup=markup)
 
 
 def handler(update, context):
     try:
-        if update.message.chat.id == admin:
+        if update.message.chat.id == 123:
             # Главное меню
             if context.user_data['locality'][len(context.user_data['locality'])] == 'Старт':
                 if update.message.text == 'Добавить линейку':
@@ -444,9 +454,87 @@ def handler(update, context):
                 else:
                     update.message.reply_text('Ошибка')
                 return start(update, context)
-    except:
-        update.message.reply_text(f'Ошибка')
+
+
+        if update.message.chat.id == admin:
+            if context.user_data['locality'][len(context.user_data['locality'])] == 'Старт':
+                if update.message.text == 'Продать':
+                    reply_keyboard = [[elem.brend] for elem in db_session.create_session().query(
+                        Brends).all()]
+                    reply_keyboard.append(['Назад'])
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Продать 1'
+                    update.message.reply_text('Выберите линейку',
+                                              reply_markup=ReplyKeyboardMarkup(reply_keyboard,
+                                                                               resize_keyboard=True,
+                                                                               one_time_keyboard=True))
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Продать 1':
+                brend_id = check_brend(update.message.text)
+                if brend_id:
+                    db_sess = db_session.create_session()
+                    context.user_data['sell_good'] = {'brend_id': brend_id}
+                    good = db_sess.query(Goods).filter(Goods.brend_id == brend_id).all()
+                    reply_keyboard = [[f"{elem.title} - "
+                                       f"{get_amount_2(db_sess, elem, context.user_data['user_id_db'])}"]
+                                      for elem in good if get_amount_2(
+                            db_sess,
+                            elem,
+                            context.user_data['user_id_db']) > 0]
+                    reply_keyboard.append(['Отмена'])
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = \
+                        'Продать 2'
+                    update.message.reply_text('Выберите товар линейки',
+                                              reply_markup=ReplyKeyboardMarkup(reply_keyboard,
+                                                                               resize_keyboard=True,
+                                                                               one_time_keyboard=True))
+                else:
+                    update.message.reply_text('Линейка не найдена')
+                    return start(update, context)
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Продать 2':
+                db_sess = db_session.create_session()
+                if update.message.text == 'Отмена':
+                    return start(update, context)
+                elif (update.message.text.split(' -')[0],) in db_sess.query(Goods.title).all():
+                    context.user_data['sell_good']['delivery_good_title'] = update.message.text.split(' -')[0]
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = \
+                        'Продать 3'
+                    update.message.reply_text('Скидка',
+                                              reply_markup=ReplyKeyboardMarkup([['Нет'], ['5%'], ['10%'], ['Отмена']],
+                                                                               resize_keyboard=True,
+                                                                               one_time_keyboard=True))
+                else:
+                    update.message.reply_text('Ошибка')
+                    return start(update, context)
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Продать 3':
+                db_sess = db_session.create_session()
+                if update.message.text == 'Отмена':
+                    return start(update, context)
+                elif update.message.text in ['Нет', '5%', '10%']:
+                    good_deliver = db_sess.query(Delivery_goods).filter(
+                        Delivery_goods.good_id == db_sess.query(
+                            Goods
+                        ).filter(
+                            Goods.title == context.user_data['sell_good']['delivery_good_title'],
+                            Goods.brend_id == context.user_data['sell_good']['brend_id']
+                        ).first().id,
+                        Delivery_goods.deliveryman_id ==
+                        context.user_data['user_id_db']).first()
+                    good_deliver.amount -= 1
+                    return start(update, context)
+                else:
+                    update.message.reply_text('Ошибка')
+                    return start(update, context)
+    except Exception as e:
+        update.message.reply_text(f'Ошибка {e}')
         return start(update, context)
+
+def sell_good(delivery_id, deliveryman_id, discount):
+    return True
+
+
+def get_amount_2(db_sess, elem, id):
+    return db_sess.query(Delivery_goods).filter(
+        Delivery_goods.good == elem,
+        Delivery_goods.deliveryman_id == id).first().amount
 
 
 def get_amount(db_sess, elem, context):
