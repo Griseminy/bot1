@@ -16,6 +16,7 @@ class Brends(SqlAlchemyBase):
 
     id = sqlalchemy.Column(sqlalchemy.Integer,
                            primary_key=True, autoincrement=True)
-    brend = sqlalchemy.Column(sqlalchemy.String, nullable=True)
-    price = sqlalchemy.Column(sqlalchemy.Integer, nullable=True)
+    brend = sqlalchemy.Column(sqlalchemy.String)
+    price = sqlalchemy.Column(sqlalchemy.Integer)
     goods = orm.relation("Goods", back_populates='brend')
+    salary = sqlalchemy.Column(sqlalchemy.Integer)

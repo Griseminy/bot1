@@ -1,7 +1,7 @@
 from data import db_session
 from data.deliverymen import Deliverymen
 
-deliverymen = {'Антон': 123, 'Aртём': 456, 'Глеб': 789}
+deliverymen = {'Антон': 754288169, 'Aртём': 456, 'Глеб': 789}
 admin = 1904018585
 
 def add_deliverymen(deliverymen):

@@ -21,5 +21,7 @@ class Sales(SqlAlchemyBase):
                                        sqlalchemy.ForeignKey("deliverymen.id"))
     deliveryman = orm.relation('Deliverymen')
     deliverygood_ids = sqlalchemy.Column(sqlalchemy.String, nullable=True)
+    sales_salary = sqlalchemy.Column(sqlalchemy.Float, default=0)
+    total = sqlalchemy.Column(sqlalchemy.Float, default=0)
     on_check = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
     is_send = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
