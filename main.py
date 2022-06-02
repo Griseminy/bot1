@@ -1,3 +1,4 @@
+import datetime
 import itertools
 import logging
 
@@ -9,6 +10,7 @@ from data.brends import Brends
 from data.delivery_goods import Delivery_goods
 from data.deliverymen import Deliverymen
 from data.goods import Goods
+from data.sales import Sales
 from settings import add_deliverymen
 from settings import admin
 from settings import deliverymen
@@ -498,17 +500,17 @@ def handler(update, context):
                     context.user_data['locality'][len(context.user_data['locality']) + 1] = \
                         'Продать 3'
                     update.message.reply_text('Скидка',
-                                              reply_markup=ReplyKeyboardMarkup([['Нет'], ['5%'], ['10%'], ['Отмена']],
+                                              reply_markup=ReplyKeyboardMarkup([['0'], ['5'], ['10'], ['Отмена']],
                                                                                resize_keyboard=True,
                                                                                one_time_keyboard=True))
                 else:
                     update.message.reply_text('Ошибка')
                     return start(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Продать 3':
-                db_sess = db_session.create_session()
                 if update.message.text == 'Отмена':
                     return start(update, context)
-                elif update.message.text in ['Нет', '5%', '10%']:
+                elif update.message.text in ['0', '5', '10']:
+                    db_sess = db_session.create_session()
                     good_deliver = db_sess.query(Delivery_goods).filter(
                         Delivery_goods.good_id == db_sess.query(
                             Goods
@@ -518,7 +520,14 @@ def handler(update, context):
                         ).first().id,
                         Delivery_goods.deliveryman_id ==
                         context.user_data['user_id_db']).first()
-                    good_deliver.amount -= 1
+                    if sell_good(good_deliver.id, context.user_data['user_id_db'],
+                                 update.message.text):
+                        good_deliver.amount -= 1
+                        db_sess.add(good_deliver)
+                        db_sess.commit()
+                        update.message.reply_text('Успешно!')
+                    else:
+                        update.message.reply_text('Ошибка')
                     return start(update, context)
                 else:
                     update.message.reply_text('Ошибка')
@@ -527,7 +536,20 @@ def handler(update, context):
         update.message.reply_text(f'Ошибка {e}')
         return start(update, context)
 
+
 def sell_good(delivery_id, deliveryman_id, discount):
+    db_sess = db_session.create_session()
+    sold = db_sess.query(Sales).filter(Sales.date == datetime.datetime.now().date(),
+                                       Sales.deliveryman_id == deliveryman_id).first()
+    if sold:
+        sold.deliverygood_ids += f'&{delivery_id}.{discount}'
+        db_sess.add(sold)
+        db_sess.commit()
+    else:
+        sold = Sales(date=datetime.datetime.now().date(),
+                     deliveryman_id=deliveryman_id, deliverygood_ids=f'{delivery_id}.{discount}')
+        db_sess.add(sold)
+        db_sess.commit()
     return True
 
 

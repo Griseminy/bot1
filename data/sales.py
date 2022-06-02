@@ -16,9 +16,10 @@ class Sales(SqlAlchemyBase):
 
     id = sqlalchemy.Column(sqlalchemy.Integer,
                            primary_key=True, autoincrement=True)
-    date = sqlalchemy.Column(sqlalchemy.String)
+    date = sqlalchemy.Column(sqlalchemy.Date)
     deliveryman_id = sqlalchemy.Column(sqlalchemy.Integer,
-                                       sqlalchemy.ForeignKey("deliveryman.id"))
+                                       sqlalchemy.ForeignKey("deliverymen.id"))
     deliveryman = orm.relation('Deliverymen')
-    deliverygood_ids = title = sqlalchemy.Column(sqlalchemy.String, nullable=True)
-    is_send = orm.relation(sqlalchemy.Boolean, default=False)
+    deliverygood_ids = sqlalchemy.Column(sqlalchemy.String, nullable=True)
+    on_check = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
+    is_send = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
