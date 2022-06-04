@@ -30,7 +30,7 @@ def start(update, context):
         context.user_data['locality'][1] = 'Старт'
         reply_keyboard = [['Наличие', 'Изменить количество'],
                           ['Добавить линейку', 'Изменить линейку'],
-                          ['Статистика']]
+                          ['Проверка']]
         markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
         update.message.reply_text('Нажмите кнопки снизу', reply_markup=markup)
     elif update.message.chat.id in deliverymen.values():
@@ -85,6 +85,22 @@ def handler(update, context):
                                               reply_markup=ReplyKeyboardMarkup(reply_keyboard,
                                                                                resize_keyboard=True,
                                                                                one_time_keyboard=True))
+                elif update.message.text == 'Проверка':
+                    db_sess = db_session.create_session()
+                    send_on_check = db_sess.query(Sales).filter(Sales.on_check == True, Sales.is_send == False).all()
+                    if send_on_check:
+                        context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Проверка 1'
+                        reply_keyboard = []
+                        for elem in send_on_check:
+                            reply_keyboard.append([str(elem.date) + ' ' +
+                                                   str(db_sess.query(
+                                                       Deliverymen).get(elem.deliveryman_id).name) + ' ' +
+                                                   str(elem.total)])
+                        reply_keyboard.append(['Отмена'])
+                        markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+                        update.message.reply_text('Выберите дату', reply_markup=markup)
+                    else:
+                        update.message.reply_text('Ничего не найдено')
             #
             # Добавление новой линейки
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Добавить линейку':
@@ -476,6 +492,26 @@ def handler(update, context):
                 else:
                     update.message.reply_text('Ошибка')
                 return start(update, context)
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Проверка 1':
+                if update.message.text == 'Отмена':
+                    return start(update, context)
+                elif '-' in update.message.text:
+                    db_sess = db_session.create_session()
+                    sales_good = db_sess.query(Sales).filter(
+                        Sales.date == datetime.date(int(update.message.text.split(' ')[0].split('-')[0]),
+                                                    int(update.message.text.split(' ')[0].split('-')[1]),
+                                                    int(update.message.text.split(' ')[0].split('-')[2]))).first()
+                    if sales_good:
+                        sales_good.is_send = True
+                        db_sess.add(sales_good)
+                        db_sess.commit()
+                        update.message.reply_text('Проверено')
+                        return start(update, context)
+                    else:
+                        update.message.reply_text('Ничего не найдено')
+                        return start(update, context)
+                else:
+                    return start(update, context)
         #
         # Меню доставщика
         if update.message.chat.id in deliverymen.values():
