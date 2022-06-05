@@ -31,7 +31,7 @@ def start(update, context):
         context.user_data['locality'][1] = 'Старт'
         reply_keyboard = [['Наличие', 'Изменить количество'],
                           ['Добавить линейку', 'Изменить линейку'],
-                          ['Проверка']]
+                          ['Проверка', 'Статистика']]
         markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
         update.message.reply_text('Нажмите кнопки снизу', reply_markup=markup)
     elif update.message.chat.id in deliverymen.values():
@@ -103,6 +103,15 @@ def handler(update, context):
                         update.message.reply_text('Выберите дату', reply_markup=markup)
                     else:
                         update.message.reply_text('Ничего не найдено')
+                elif update.message.text == 'Статистика':
+                    reply_keyboard = [[elem] for elem in deliverymen]
+                    reply_keyboard.append(['Общее'])
+                    reply_keyboard.append(['Назад'])
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Статистика'
+                    update.message.reply_text('Выберите доставщика',
+                                              reply_markup=ReplyKeyboardMarkup(reply_keyboard,
+                                                                               resize_keyboard=True,
+                                                                               one_time_keyboard=True))
             #
             # Добавление новой линейки
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Добавить линейку':
@@ -541,6 +550,144 @@ def handler(update, context):
                         update.message.reply_text('Ничего не найдено')
                         return start(update, context)
                 else:
+                    return start(update, context)
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Статистика':
+                db_sess = db_session.create_session()
+                if update.message.text == 'Назад':
+                    return start(update, context)
+                elif update.message.text == 'Общее':
+                    context.user_data['deliveryman'] = None
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Статистика 2'
+                    reply_keyboard = [['Число месяца'], ['Месяц'], ['Отмена']]
+                    update.message.reply_text('Выберите промежуток',
+                                              reply_markup=ReplyKeyboardMarkup(reply_keyboard,
+                                                                               resize_keyboard=True,
+                                                                               one_time_keyboard=True))
+                elif (update.message.text,) in db_sess.query(Deliverymen.name).all():
+                    deliver = db_sess.query(Deliverymen).filter(Deliverymen.name == update.message.text).first()
+                    context.user_data['deliveryman'] = deliver.id
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Статистика 2'
+                    reply_keyboard = [['Число месяца'], ['Месяц'], ['Отмена']]
+                    update.message.reply_text('Выберите промежуток',
+                                              reply_markup=ReplyKeyboardMarkup(reply_keyboard,
+                                                                               resize_keyboard=True,
+                                                                               one_time_keyboard=True))
+                else:
+                    update.message.reply_text('Ошибка')
+                    return start(update, context)
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Статистика 2':
+                db_sess = db_session.create_session()
+                if update.message.text == 'Отмена':
+                    return start(update, context)
+                elif update.message.text == 'Месяц':
+                    if context.user_data['deliveryman']:
+                        sales = db_sess.query(Sales).filter(
+                            Sales.deliveryman_id == context.user_data['deliveryman'],
+                            extract('month', Sales.date) == datetime.datetime.now().date().month,
+                            extract('year', Sales.date) == datetime.datetime.now().date().year,
+                            Sales.is_send == True).all()
+                        salary = 0
+                        total = 0
+                        amount = 0
+                        for elem in sales:
+                            salary += elem.sales_salary
+                            total += elem.total
+                            amount += len(elem.deliverygood_ids.split('&'))
+                        update.message.reply_text(f"Статистика "
+                                                  f"{db_sess.query(Deliverymen).get(context.user_data['deliveryman']).name}\n"
+                                                  f"Зарплата: {salary}\n"
+                                                  f"Скинуто: {total}\n"
+                                                  f"Продано штук: {amount}\n"
+                                                  f"Средняя цена позиции: {(total + salary) / amount if amount > 0 else 0}\n")
+                        return start(update, context)
+                    else:
+                        sales = db_sess.query(Sales).filter(
+                            extract('month', Sales.date) == datetime.datetime.now().date().month,
+                            extract('year', Sales.date) == datetime.datetime.now().date().year,
+                            Sales.is_send == True).all()
+                        salary = 0
+                        total = 0
+                        amount = 0
+                        for elem in sales:
+                            salary += elem.sales_salary
+                            total += elem.total
+                            amount += len(elem.deliverygood_ids.split('&'))
+                        update.message.reply_text(f"Статистика общее\n"
+                                                  f"Зарплата: {salary}\n"
+                                                  f"Скинуто: {total}\n"
+                                                  f"Продано штук: {amount}\n"
+                                                  f"Средняя цена позиции: {(total + salary) / amount if amount > 0 else 0}\n")
+                        return start(update, context)
+                elif update.message.text == 'Число месяца':
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Статистика 3'
+                    if context.user_data['deliveryman']:
+                        sales = db_sess.query(Sales).filter(
+                            Sales.deliveryman_id == context.user_data['deliveryman'],
+                            extract('month', Sales.date) == datetime.datetime.now().date().month,
+                            extract('year', Sales.date) == datetime.datetime.now().date().year,
+                            Sales.is_send == True).all()
+                        reply_keyboard = [[str(elem.date)] for elem in sales]
+                        reply_keyboard.append(['Отмена'])
+                        update.message.reply_text('Выберите день',
+                                                  reply_markup=ReplyKeyboardMarkup(reply_keyboard,
+                                                                                   resize_keyboard=True,
+                                                                                   one_time_keyboard=True))
+                    else:
+                        sales = db_sess.query(Sales).filter(
+                            extract('month', Sales.date) == datetime.datetime.now().date().month,
+                            extract('year', Sales.date) == datetime.datetime.now().date().year,
+                            Sales.is_send == True).all()
+                        reply_keyboard = [[str(elem.date)] for elem in sales]
+                        reply_keyboard.append(['Отмена'])
+                        update.message.reply_text('Выберите день',
+                                                  reply_markup=ReplyKeyboardMarkup(reply_keyboard,
+                                                                                   resize_keyboard=True,
+                                                                                   one_time_keyboard=True))
+                else:
+                    update.message.reply_text('Ошибка')
+                    return start(update, context)
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Статистика 3':
+                if update.message.text == 'Отмена':
+                    return start(update, context)
+                elif '-' in update.message.text:
+                    db_sess = db_session.create_session()
+                    if context.user_data['deliveryman']:
+                        sales_good = db_sess.query(Sales).filter(
+                            Sales.deliveryman_id == context.user_data['deliveryman'],
+                            Sales.date == datetime.date(int(update.message.text.split('-')[0]),
+                                                        int(update.message.text.split('-')[1]),
+                                                        int(update.message.text.split('-')[2]))
+                        ).first()
+                        kolvo = len(sales_good.deliverygood_ids.split('&'))
+                        sredn = (sales_good.total + sales_good.sales_salary) / kolvo if kolvo > 0 else 0
+                        update.message.reply_text(f"Статитстика"
+                                                  f"{db_sess.query(Deliverymen).get(context.user_data['deliveryman']).name}\n"
+                                                  f"Зарплата: {sales_good.sales_salary}\n"
+                                                  f"Скинуто: {sales_good.total}\n"
+                                                  f"Продано штук: {kolvo}\n"
+                                                  f"Средняя цена позиции: {sredn}")
+                        return start(update, context)
+                    else:
+                        sales_good = db_sess.query(Sales).filter(
+                            Sales.date == datetime.date(int(update.message.text.split('-')[0]),
+                                                        int(update.message.text.split('-')[1]),
+                                                        int(update.message.text.split('-')[2]))
+                        ).all()
+                        salary = 0
+                        total = 0
+                        amount = 0
+                        for elem in sales_good:
+                            salary += elem.sales_salary
+                            total += elem.total
+                            amount += len(elem.deliverygood_ids.split("&"))
+                        update.message.reply_text(f'Статитстика общее\n'
+                                                  f'Зарплата: {salary}\n'
+                                                  f'Скинуто: {total}\n'
+                                                  f'Продано штук: {amount}\n'
+                                                  f'Средняя цена позиции: {(salary + total) / amount if amount > 0 else 0}\n')
+                        return start(update, context)
+                else:
+                    update.message.reply_text('Ошибка')
                     return start(update, context)
         #
         # Меню доставщика
