@@ -15,6 +15,8 @@ from data.sales import Sales
 from settings import add_deliverymen
 from settings import admin
 from settings import deliverymen
+from settings import delyverymen_id
+from settings import text_chat
 
 # бот @echoyandbot
 TOKEN = '5301614535:AAGAjCg3CopbFtvzUQVGLAkE9lOpNsbnX-Q'
@@ -45,6 +47,13 @@ def start(update, context):
                           ['Отправить на проверку', 'Нужно перевести']]
         markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
         update.message.reply_text('Нажмите кнопки снизу', reply_markup=markup)
+    else:
+        context.user_data['locality'] = {}
+        context.user_data['locality'][1] = 'Старт'
+
+        reply_keyboard = [['Наличие'], ['Доставка']]
+        markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+        update.message.reply_text('Нажмите кнопки на клавиатуре', reply_markup=markup)
 
 
 def handler(update, context):
@@ -691,7 +700,7 @@ def handler(update, context):
                     return start(update, context)
         #
         # Меню доставщика
-        if update.message.chat.id in deliverymen.values():
+        elif update.message.chat.id in deliverymen.values():
             if context.user_data['locality'][len(context.user_data['locality'])] == 'Старт':
                 if update.message.text == 'Продать':
                     reply_keyboard = [[elem.brend] for elem in db_session.create_session().query(
@@ -855,6 +864,56 @@ def handler(update, context):
                         update.message.reply_text('Ничего не найдено')
                         return start(update, context)
                 else:
+                    return start(update, context)
+        else:
+            if context.user_data['locality'][len(context.user_data['locality'])] == 'Старт':
+                if update.message.text == 'Наличие':
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Наличие 1'
+                    db_sess = db_session.create_session()
+                    reply_keyboard = [[elem.name] for elem in db_sess.query(Deliverymen).all()]
+                    reply_keyboard.append(['Отмена'])
+                    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+                    update.message.reply_text('Выберите доставщика', reply_markup=markup)
+                elif update.message.text == 'Доставка':
+                    update.message.reply_text(text_chat)
+                    return start(update, context)
+                else:
+                    update.message.reply_text('Ошибка')
+                    return start(update, context)
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Наличие 1':
+                db_sess = db_session.create_session()
+                if update.message.text == 'Отмена':
+                    return start(update, context)
+                elif (update.message.text,) in db_sess.query(Deliverymen.name).all():
+                    deliver = db_sess.query(Deliverymen).filter(
+                        Deliverymen.name == update.message.text).first()
+                    context.user_data['user'] = deliver.id
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Наличие 2'
+                    reply_keyboard = [[elem.brend] for elem in db_sess.query(Brends).all()]
+                    reply_keyboard.append(['Отмена'])
+                    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+                    update.message.reply_text('Выберите линейку', reply_markup=markup)
+                else:
+                    update.message.reply_text('Ничего не найдено')
+                    return start(update, context)
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Наличие 2':
+                db_sess = db_session.create_session()
+                if update.message.text == 'Отмена':
+                    return start(update, context)
+                elif (update.message.text,) in db_sess.query(Brends.brend).all():
+                    brend_good = db_sess.query(Brends).filter(Brends.brend == update.message.text).first()
+                    deliver = db_sess.query(Deliverymen).get(context.user_data['user'])
+                    text_amount = f'Жидкость {brend_good.brend + " " + str(brend_good.price)} рублей у' \
+                                  f' {delyverymen_id[deliver.name]}:\n'
+                    for el in db_sess.query(Goods).filter(Goods.brend == brend_good).all():
+                        deliv_good = db_sess.query(Delivery_goods).filter(
+                            Delivery_goods.good == el,
+                            Delivery_goods.deliveryman == deliver).first()
+                        text_amount += f'{el.title} {deliv_good.amount}\n'
+                    update.message.reply_text(text_amount)
+                    return start(update, context)
+                else:
+                    update.message.reply_text('Ничего не найдено')
                     return start(update, context)
     except Exception as e:
         update.message.reply_text(f'Ошибка {e}')
