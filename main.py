@@ -2,6 +2,7 @@ import datetime
 import itertools
 import logging
 
+from sqlalchemy.sql import extract
 from telegram import ReplyKeyboardMarkup
 from telegram.ext import Updater, MessageHandler, Filters, CommandHandler
 
@@ -40,8 +41,8 @@ def start(update, context):
         deliveryman = db_sess.query(Deliverymen).filter(Deliverymen.user_id == update.message.chat.id).first()
         context.user_data['user_id_db'] = deliveryman.id
         reply_keyboard = [['Продать', 'Наличие'],
-                          ['Статистика', 'Нужно перевести'],
-                          ['Отправить на проверку']]
+                          ['Статистика за день', 'Статистика за месяц'],
+                          ['Отправить на проверку', 'Нужно перевести']]
         markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
         update.message.reply_text('Нажмите кнопки снизу', reply_markup=markup)
 
@@ -53,7 +54,8 @@ def handler(update, context):
             if context.user_data['locality'][len(context.user_data['locality'])] == 'Старт':
                 if update.message.text == 'Добавить линейку':
                     context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Добавить линейку'
-                    update.message.reply_text('Введите название, цену, зарплату, каждый с новой строки',
+                    update.message.reply_text(f'Введите название, цену, зарплату скидки '
+                                              f'через слэш каждый с новой строки',
                                               reply_markup=ReplyKeyboardMarkup([['Назад']],
                                                                                resize_keyboard=True,
                                                                                one_time_keyboard=True))
@@ -112,6 +114,8 @@ def handler(update, context):
                     db_sess = db_session.create_session()
                     db_sess.add(Brends(brend=context.user_data['new_good'][0],
                                        price=int(update.message.text.split('\n')[1]),
+                                       discount_1=int(update.message.text.split('\n')[3].split('/')[0]),
+                                       discount_2=int(update.message.text.split('\n')[3].split('/')[1]),
                                        salary=int(update.message.text.split('\n')[2])))
                     db_sess.commit()
                     context.user_data['locality'][
@@ -148,6 +152,8 @@ def handler(update, context):
                                                   reply_markup=ReplyKeyboardMarkup([[f'Цену {brend.price}'],
                                                                                     [f'Название {brend.brend}'],
                                                                                     [f'Зарплату {brend.salary}'],
+                                                                                    [f'Скидку {brend.discount_1}/'
+                                                                                     f'{brend.discount_2}'],
                                                                                     ['Изменить вкус'],
                                                                                     ['Добавить вкус'],
                                                                                     ['Отмена']],
@@ -192,6 +198,12 @@ def handler(update, context):
                 elif update.message.text == 'Добавить вкус':
                     context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Добавить вкус'
                     update.message.reply_text('Введите название вкуса',
+                                              reply_markup=ReplyKeyboardMarkup([['Отмена']],
+                                                                               resize_keyboard=True,
+                                                                               one_time_keyboard=True))
+                elif update.message.text.split(' ')[0] == 'Скидку':
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Изменить скидку'
+                    update.message.reply_text('Введите новую скидку через /',
                                               reply_markup=ReplyKeyboardMarkup([['Отмена']],
                                                                                resize_keyboard=True,
                                                                                one_time_keyboard=True))
@@ -253,6 +265,20 @@ def handler(update, context):
                 if redact_good_title(context.user_data['redactor_brend'][0], context.user_data['redactor_brend'][1],
                                      update.message.text):
                     update.message.reply_text('Название успешно изменено')
+                else:
+                    update.message.reply_text('Ошибка')
+                return start(update, context)
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Изменить скидку':
+                if update.message.text == 'Отмена':
+                    return start(update, context)
+                elif '/' in update.message.text:
+                    db_sess = db_session.create_session()
+                    brend = db_sess.query(Brends).get(context.user_data['redactor_brend'][0])
+                    brend.discount_1 = int(update.message.text.split('/')[0])
+                    brend.discount_2 = int(update.message.text.split('/')[1])
+                    db_sess.add(brend)
+                    db_sess.commit()
+                    update.message.reply_text('Успешно')
                 else:
                     update.message.reply_text('Ошибка')
                 return start(update, context)
@@ -446,8 +472,12 @@ def handler(update, context):
                     context.user_data['locality'] = \
                         dict(itertools.islice(context.user_data['locality'].items(),
                                               len(context.user_data['locality']) - 2))
-                    reply_keyboard = [[elem.title] for elem in db_session.create_session().query(
-                        Goods).filter(Goods.brend_id == context.user_data['add_amount']['brend_id']).all()]
+                    db_sess = db_session.create_session()
+                    reply_keyboard = [[f"{elem.title} - {get_amount(db_sess, elem, context)}"] for elem in
+                                      db_sess.query(
+                                          Goods
+                                      ).filter(
+                                          Goods.brend_id == context.user_data['add_amount']['brend_id']).all()]
                     reply_keyboard.append(['Отмена'])
                     update.message.reply_text(f"Выберите товар линейки",
                                               reply_markup=ReplyKeyboardMarkup(reply_keyboard,
@@ -545,13 +575,59 @@ def handler(update, context):
                         context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Проверка 1'
                         reply_keyboard = []
                         for elem in send_on_check:
-                            reply_keyboard.append([str(elem.date)])
+                            reply_keyboard.append([str(elem.date) + ' ' + str(elem.total)])
                         reply_keyboard.append(['Отмена'])
                         markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
                         update.message.reply_text('Выберите дату', reply_markup=markup)
                     else:
                         update.message.reply_text('Ничего не найдено')
                         return start(update, context)
+                elif update.message.text == 'Статистика за день':
+                    db_sess = db_session.create_session()
+                    today = db_sess.query(Sales).filter(
+                        Sales.deliveryman_id == context.user_data['user_id_db'],
+                        Sales.date == datetime.datetime.now().date()).first()
+                    if today:
+                        sredn = (today.total + today.sales_salary) / len(today.deliverygood_ids.split("&"))
+                        update.message.reply_text(f'Зарплата: {today.sales_salary}\n'
+                                                  f'Скинуть: {today.total}\n'
+                                                  f'Продано штук: {len(today.deliverygood_ids.split("&"))}\n'
+                                                  f'Средняя цена позиции: {sredn}\n')
+                    else:
+                        update.message.reply_text('Пока что ничего не продано')
+                    return start(update, context)
+                elif update.message.text == 'Статистика за месяц':
+                    db_sess = db_session.create_session()
+                    month = db_sess.query(Sales).filter(
+                        Sales.deliveryman_id == context.user_data['user_id_db'],
+                        extract('month', Sales.date) == datetime.datetime.now().date().month,
+                        extract('year', Sales.date) == datetime.datetime.now().date().year,
+                        Sales.is_send == True).all()
+                    salary = 0
+                    total = 0
+                    amount = 0
+                    for elem in month:
+                        salary += elem.sales_salary
+                        total += elem.total
+                        amount += len(elem.deliverygood_ids.split("&"))
+                    update.message.reply_text(f'Зарплата: {salary}\n'
+                                              f'Скинуто: {total}\n'
+                                              f'Продано штук: {amount}\n'
+                                              f'Средняя цена позиции: {(salary + total) / amount if amount > 0 else 0}\n')
+                elif update.message.text == 'Нужно перевести':
+                    db_sess = db_session.create_session()
+                    need_send = db_sess.query(Sales).filter(
+                        Sales.deliveryman_id == context.user_data['user_id_db'],
+                        Sales.is_send == False).all()
+                    stroka = ''
+                    for elem in need_send:
+                        stroka += f"{elem.date}\n" \
+                                  f"{elem.total}\n\n"
+                    if stroka != '':
+                        update.message.reply_text(stroka + 'Не забывай приписку долг и сегодняшнюю дату')
+                    else:
+                        update.message.reply_text('Всё скинуто')
+                    return start(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Продать 1':
                 brend_id = check_brend(update.message.text)
                 if brend_id:
@@ -583,7 +659,7 @@ def handler(update, context):
                     context.user_data['locality'][len(context.user_data['locality']) + 1] = \
                         'Продать 3'
                     update.message.reply_text('Скидка',
-                                              reply_markup=ReplyKeyboardMarkup([['0'], ['5'], ['10'], ['Отмена']],
+                                              reply_markup=ReplyKeyboardMarkup([['0'], ['1'], ['2'], ['Отмена']],
                                                                                resize_keyboard=True,
                                                                                one_time_keyboard=True))
                 else:
@@ -592,7 +668,7 @@ def handler(update, context):
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Продать 3':
                 if update.message.text == 'Отмена':
                     return start(update, context)
-                elif update.message.text in ['0', '5', '10']:
+                elif update.message.text in ['0', '1', '2']:
                     db_sess = db_session.create_session()
                     good_deliver = db_sess.query(Delivery_goods).filter(
                         Delivery_goods.good_id == db_sess.query(
@@ -604,7 +680,7 @@ def handler(update, context):
                         Delivery_goods.deliveryman_id ==
                         context.user_data['user_id_db']).first()
                     if sell_good(good_deliver.id, context.user_data['user_id_db'],
-                                 update.message.text):
+                                 context.user_data['sell_good']['brend_id'], update.message.text):
                         good_deliver.amount -= 1
                         db_sess.add(good_deliver)
                         db_sess.commit()
@@ -612,18 +688,16 @@ def handler(update, context):
                     else:
                         update.message.reply_text('Ошибка')
                     return start(update, context)
-                else:
-                    update.message.reply_text('Ошибка')
-                    return start(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Проверка 1':
                 if update.message.text == 'Отмена':
                     return start(update, context)
                 elif '-' in update.message.text:
                     db_sess = db_session.create_session()
                     sales_good = db_sess.query(Sales).filter(
-                        Sales.date == datetime.date(int(update.message.text.split('-')[0]),
-                                                    int(update.message.text.split('-')[1]),
-                                                    int(update.message.text.split('-')[2]))).first()
+                        Sales.date == datetime.date(int(update.message.text.split(' ')[0].split('-')[0]),
+                                                    int(update.message.text.split(' ')[0].split('-')[1]),
+                                                    int(update.message.text.split(' ')[0].split('-')[2]))
+                    ).first()
                     if sales_good:
                         sales_good.on_check = True
                         db_sess.add(sales_good)
@@ -640,16 +714,22 @@ def handler(update, context):
         return start(update, context)
 
 
-def sell_good(delivery_id, deliveryman_id, discount):
+def sell_good(delivery_id, deliveryman_id, brend_id, discount_number):
     db_sess = db_session.create_session()
     sold = db_sess.query(Sales).filter(Sales.date == datetime.datetime.now().date(),
                                        Sales.deliveryman_id == deliveryman_id).first()
     delivery_good = db_sess.query(Delivery_goods).get(delivery_id)
     good = db_sess.query(Goods).get(delivery_good.good_id)
     brend_delivery_good = db_sess.query(Brends).get(good.brend_id)
+    if discount_number == '0':
+        discount = 0
+    elif discount_number == '1':
+        discount = db_sess.query(Brends).get(brend_id).discount_1
+    elif discount_number == '2':
+        discount = db_sess.query(Brends).get(brend_id).discount_2
     if sold:
         sold.deliverygood_ids += f'&{delivery_id}.{discount}'
-        sold.total += brend_delivery_good.price * (1 - int(discount) * 0.01) - brend_delivery_good.salary
+        sold.total += brend_delivery_good.price - brend_delivery_good.salary - discount
         sold.sales_salary += brend_delivery_good.salary
         db_sess.add(sold)
         db_sess.commit()
@@ -658,8 +738,7 @@ def sell_good(delivery_id, deliveryman_id, discount):
                      deliveryman_id=deliveryman_id,
                      deliverygood_ids=f'{delivery_id}.{discount}',
                      sales_salary=brend_delivery_good.salary,
-                     total=(brend_delivery_good.price * (1 - int(discount) * 0.01) -
-                            brend_delivery_good.salary))
+                     total=brend_delivery_good.price - brend_delivery_good.salary - discount)
         db_sess.add(sold)
         db_sess.commit()
     return True
@@ -752,32 +831,11 @@ def add_goods(title, list_goods):
     return True
 
 
-# def stop(update, context):
-#     pass
-
-
 def main():
     updater = Updater(TOKEN)
     dp = updater.dispatcher
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handler))
-    # conv_handler = ConversationHandler(
-    #     # Точка входа в диалог.
-    #     # В данном случае — команда /start. Она задаёт первый вопрос.
-    #     entry_points=[CommandHandler('start', start)],
-    #
-    #     # Состояние внутри диалога.
-    #     # Вариант с двумя обработчиками, фильтрующими текстовые сообщения.
-    #     states={
-    #         1: [MessageHandler(Filters.text & ~Filters.command, handler)]
-    #         # Функция читает ответ на первый вопрос и задаёт второй.
-    #     },
-    #
-    #     # Точка прерывания диалога. В данном случае — команда /stop.
-    #     fallbacks=[CommandHandler('stop', stop)]
-    # )
-    #
-    # dp.add_handler(conv_handler)
     updater.start_polling()
     updater.idle()
 
