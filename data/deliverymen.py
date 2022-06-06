@@ -13,3 +13,4 @@ class Deliverymen(SqlAlchemyBase):
     user_id = sqlalchemy.Column(sqlalchemy.Integer, nullable=True)
     delivery_good = orm.relation("Delivery_goods", back_populates='deliveryman')
     sale = orm.relation("Sales", back_populates='deliveryman')
+    tg_id = sqlalchemy.Column(sqlalchemy.String, nullable=True)

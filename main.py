@@ -7,7 +7,7 @@ from data.deliverymen import Deliverymen
 from data.goods import Goods
 from data.sales import Sales
 from settings import add_deliverymen
-from settings import admin
+from settings import admin, admin_2
 from settings import deliverymen
 from settings import delyverymen_id
 from settings import text_chat
@@ -19,33 +19,40 @@ TOKEN = '5301614535:AAGAjCg3CopbFtvzUQVGLAkE9lOpNsbnX-Q'
 
 
 def start(update, context):
-    context.user_data['locality'] = {}
-    context.user_data['locality'][1] = 'Старт'
-    if update.message.chat.id == admin:
-        update.message.reply_text('Нажмите кнопки снизу',
-                                  reply_markup=ReplyKeyboardMarkup([['Наличие', 'Изменить количество'],
-                                                                    ['Добавить линейку', 'Изменить линейку'],
-                                                                    ['Проверка', 'Статистика']], resize_keyboard=True,
-                                                                   one_time_keyboard=True))
-    elif update.message.chat.id in deliverymen.values():
-        context.user_data['user_id_db'] = db_session.create_session().query(
-            Deliverymen).filter(Deliverymen.user_id == update.message.chat.id).first().id
-        update.message.reply_text('Нажмите кнопки снизу', reply_markup=ReplyKeyboardMarkup([['Продать', 'Наличие'],
-                                                                                            ['Статистика за день',
-                                                                                             'Статистика за месяц'],
-                                                                                            ['Отправить на проверку',
-                                                                                             'Нужно перевести']],
-                                                                                           resize_keyboard=True,
-                                                                                           one_time_keyboard=True))
-    else:
-        update.message.reply_text('Нажмите кнопки на клавиатуре',
-                                  reply_markup=ReplyKeyboardMarkup([['Наличие'], ['Доставка']], resize_keyboard=True,
-                                                                   one_time_keyboard=True))
+    try:
+        context.user_data['locality'] = {}
+        context.user_data['locality'][1] = 'Старт'
+        if update.message.chat.id == admin or update.message.chat.id == admin_2:
+            update.message.reply_text('Нажмите кнопки снизу',
+                                      reply_markup=ReplyKeyboardMarkup([['Наличие', 'Изменить количество'],
+                                                                        ['Добавить линейку', 'Изменить линейку'],
+                                                                        ['Проверка', 'Статистика']],
+                                                                       resize_keyboard=True,
+                                                                       one_time_keyboard=True))
+        elif update.message.chat.id in deliverymen.values():
+            context.user_data['user_id_db'] = db_session.create_session().query(
+                Deliverymen).filter(Deliverymen.user_id == update.message.chat.id).first().id
+            update.message.reply_text('Нажмите кнопки снизу', reply_markup=ReplyKeyboardMarkup([['Продать', 'Наличие'],
+                                                                                                ['Статистика за день',
+                                                                                                 'Статистика за месяц'],
+                                                                                                [
+                                                                                                    'Отправить на проверку',
+                                                                                                    'Нужно перевести']],
+                                                                                               resize_keyboard=True,
+                                                                                               one_time_keyboard=True))
+        else:
+            update.message.reply_text('Нажмите кнопки на клавиатуре',
+                                      reply_markup=ReplyKeyboardMarkup([['Наличие'], ['Доставка']],
+                                                                       resize_keyboard=True,
+                                                                       one_time_keyboard=True))
+    except:
+        update.message.reply_text('Ошибка')
+        return start(update, context)
 
 
 def handler(update, context):
     try:
-        if update.message.chat.id == admin:
+        if update.message.chat.id == admin or update.message.chat.id == admin_2:
             # Главное меню
             if context.user_data['locality'][len(context.user_data['locality'])] == 'Старт':
                 if update.message.text == 'Добавить линейку':
@@ -888,8 +895,8 @@ def handler(update, context):
                 else:
                     update.message.reply_text('Ничего не найдено')
                     return start(update, context)
-    except Exception as e:
-        update.message.reply_text(f'Ошибка {e}')
+    except:
+        update.message.reply_text('Ошибка')
         return start(update, context)
 
 

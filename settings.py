@@ -1,8 +1,9 @@
 from data import db_session
 from data.deliverymen import Deliverymen
 
-deliverymen = {'Антон': 754288169, 'Aртём': 456, 'Глеб': 789}
+deliverymen = {'Антон': 640287782, 'Aртём': 636503360, 'Глеб': 787719084}
 admin = 1904018585
+admin_2 = 754288169
 delyverymen_id = {'Антон': '@slutmee', 'Aртём': '@soberaf', 'Глеб': '@Senkuxd'}
 text_chat = '''Наш канал t.me/GhostVapeKgn
 Переходите в закреп, там удобное меню
@@ -28,6 +29,6 @@ def add_deliverymen(deliverymen):
     spis = db_sess.query(Deliverymen.user_id).all()
     for name, user_id in deliverymen.items():
         if (user_id,) not in spis:
-            deliveryman = Deliverymen(name=name, user_id=user_id)
+            deliveryman = Deliverymen(name=name, user_id=user_id, tg_id=delyverymen_id[name])
             db_sess.add(deliveryman)
             db_sess.commit()
