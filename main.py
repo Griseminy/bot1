@@ -1,6 +1,5 @@
 import datetime
 import itertools
-#import logging
 from data import db_session
 from data.brends import Brends
 from data.delivery_goods import Delivery_goods
@@ -17,11 +16,6 @@ from telegram import ReplyKeyboardMarkup
 from telegram.ext import Updater, MessageHandler, Filters, CommandHandler
 
 TOKEN = '5301614535:AAGAjCg3CopbFtvzUQVGLAkE9lOpNsbnX-Q'
-#logging.basicConfig(
-#    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG
-#)
-
-#logger = logging.getLogger(__name__)
 
 
 def start(update, context):
