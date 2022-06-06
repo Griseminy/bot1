@@ -2,7 +2,7 @@ from data import db_session
 from data.deliverymen import Deliverymen
 
 deliverymen = {'Антон': 754288169, 'Aртём': 456, 'Глеб': 789}
-admin = 190401858511
+admin = 1904018585
 delyverymen_id = {'Антон': '@slutmee', 'Aртём': '@soberaf', 'Глеб': '@Senkuxd'}
 text_chat = '''Наш канал t.me/GhostVapeKgn
 Переходите в закреп, там удобное меню
@@ -22,6 +22,7 @@ text_chat = '''Наш канал t.me/GhostVapeKgn
 
 Возможна доставка и дальше по предварительному уведомлению об этом нашим курьерам.'''
 
+
 def add_deliverymen(deliverymen):
     db_sess = db_session.create_session()
     spis = db_sess.query(Deliverymen.user_id).all()
@@ -30,4 +31,3 @@ def add_deliverymen(deliverymen):
             deliveryman = Deliverymen(name=name, user_id=user_id)
             db_sess.add(deliveryman)
             db_sess.commit()
-

@@ -1,16 +1,8 @@
 import sqlalchemy
-from .db_session import SqlAlchemyBase
 from sqlalchemy import orm
 
+from .db_session import SqlAlchemyBase
 
-# users_to_jobs = sqlalchemy.Table(
-#     'users_to_jobs',
-#     SqlAlchemyBase.metadata,
-#     sqlalchemy.Column('users', sqlalchemy.Integer,
-#                       sqlalchemy.ForeignKey('users.id')),
-#     sqlalchemy.Column('jobs', sqlalchemy.Integer,
-#                       sqlalchemy.ForeignKey('jobs.id'))
-# )
 
 class Brends(SqlAlchemyBase):
     __tablename__ = 'brends'

@@ -1,15 +1,8 @@
 import sqlalchemy
-from .db_session import SqlAlchemyBase
 from sqlalchemy import orm
 
-# users_to_jobs = sqlalchemy.Table(
-#     'users_to_jobs',
-#     SqlAlchemyBase.metadata,
-#     sqlalchemy.Column('users', sqlalchemy.Integer,
-#                       sqlalchemy.ForeignKey('users.id')),
-#     sqlalchemy.Column('jobs', sqlalchemy.Integer,
-#                       sqlalchemy.ForeignKey('jobs.id'))
-# )
+from .db_session import SqlAlchemyBase
+
 
 class Sales(SqlAlchemyBase):
     __tablename__ = 'sales'
@@ -25,6 +18,3 @@ class Sales(SqlAlchemyBase):
     total = sqlalchemy.Column(sqlalchemy.Float)
     on_check = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
     is_send = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
-
-    def __month__(self, date):
-        return date.month
