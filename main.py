@@ -45,8 +45,8 @@ def start(update, context):
                                       reply_markup=ReplyKeyboardMarkup([['Наличие'], ['Доставка']],
                                                                        resize_keyboard=True,
                                                                        one_time_keyboard=True))
-    except:
-        update.message.reply_text('Ошибка')
+    except Exception as e:
+        update.message.reply_text(f'Ошибка {e}')
         return start(update, context)
 
 
@@ -896,8 +896,8 @@ def handler(update, context):
                     update.message.reply_text('Ничего не найдено')
                     return start(update, context)
         print(memory_usage())
-    except:
-        update.message.reply_text('Ошибка')
+    except Exception as e:
+        update.message.reply_text(f'Ошибка {e}')
         return start(update, context)
 
 
