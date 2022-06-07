@@ -1,0 +1,14 @@
+[Unit]
+Description=Telegram Bot
+After=network.target
+
+[Service]
+User=haz
+Group=haz
+
+WorkingDirectory=/home/haz/tgbotghost/
+Environment="PYTHONPATH=/home/haz/tgbotghost/"
+ExecStart=/home/haz/tgbotghost/.venv/bin/python /home/haz/tgbotghost/main.py
+
+[Install]
+WantedBy=multi-user.target
