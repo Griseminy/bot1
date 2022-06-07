@@ -895,7 +895,6 @@ def handler(update, context):
                 else:
                     update.message.reply_text('Ничего не найдено')
                     return start(update, context)
-        print(memory_usage())
     except Exception as e:
         update.message.reply_text(f'Ошибка {e}')
         return start(update, context)
