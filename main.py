@@ -895,6 +895,7 @@ def handler(update, context):
                 else:
                     update.message.reply_text('Ничего не найдено')
                     return start(update, context)
+        print(memory_usage())
     except:
         update.message.reply_text('Ошибка')
         return start(update, context)
@@ -926,7 +927,6 @@ def sell_good(delivery_id, deliveryman_id, brend_id, discount_number):
                           deliverygood_ids=f'{delivery_id}.{discount}',
                           sales_salary=brend_delivery_good.salary,
                           total=brend_delivery_good.price - brend_delivery_good.salary - discount))
-        db_sess.commit()
     return True
 
 
