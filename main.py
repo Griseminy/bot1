@@ -707,7 +707,9 @@ def handler(update, context):
                     update.message.reply_text(text_amount)
                     return start(update, context)
                 elif update.message.text == 'Отправить на проверку':
-                    send_on_check = db_session.create_session().query(Sales).filter(Sales.on_check == False).all()
+                    send_on_check = db_session.create_session().query(
+                        Sales).filter(Sales.on_check == False,
+                                      Sales.deliveryman_id == context.user_data['user_id_db']).all()
                     if send_on_check:
                         context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Проверка 1'
                         reply_keyboard = [[str(elem.date) + ' ' + str(elem.total)] for elem in send_on_check]
@@ -831,7 +833,8 @@ def handler(update, context):
                     sales_good = db_sess.query(Sales).filter(
                         Sales.date == datetime.date(int(update.message.text.split(' ')[0].split('-')[0]),
                                                     int(update.message.text.split(' ')[0].split('-')[1]),
-                                                    int(update.message.text.split(' ')[0].split('-')[2]))
+                                                    int(update.message.text.split(' ')[0].split('-')[2])),
+                        Sales.deliveryman_id == context.user_data['user_id_db']
                     ).first()
                     if sales_good:
                         sales_good.on_check = True
