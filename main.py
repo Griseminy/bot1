@@ -15,6 +15,8 @@ from sqlalchemy.sql import extract
 from telegram import ReplyKeyboardMarkup
 from telegram.ext import Updater, MessageHandler, Filters, CommandHandler
 
+logger = logging.getLogger(__name__)
+
 TOKEN = '5301614535:AAGAjCg3CopbFtvzUQVGLAkE9lOpNsbnX-Q'
 
 
@@ -920,13 +922,15 @@ def sell_good(delivery_id, deliveryman_id, brend_id, discount_number):
         sold.sales_salary += brend_delivery_good.salary
         db_sess.add(sold)
         db_sess.commit()
+        return True
     else:
         db_sess.add(Sales(date=datetime.datetime.now().date(),
                           deliveryman_id=deliveryman_id,
                           deliverygood_ids=f'{delivery_id}.{discount}',
                           sales_salary=brend_delivery_good.salary,
                           total=brend_delivery_good.price - brend_delivery_good.salary - discount))
-    return True
+        db_sess.commit()
+        return True
 
 
 def get_amount_2(db_sess, elem, id):
