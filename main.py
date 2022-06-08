@@ -15,8 +15,6 @@ from sqlalchemy.sql import extract
 from telegram import ReplyKeyboardMarkup
 from telegram.ext import Updater, MessageHandler, Filters, CommandHandler
 
-logger = logging.getLogger(__name__)
-
 TOKEN = '5301614535:AAGAjCg3CopbFtvzUQVGLAkE9lOpNsbnX-Q'
 
 
