@@ -536,7 +536,9 @@ def handler(update, context):
                     sales_good = db_sess.query(Sales).filter(
                         Sales.date == datetime.date(int(update.message.text.split(' ')[0].split('-')[0]),
                                                     int(update.message.text.split(' ')[0].split('-')[1]),
-                                                    int(update.message.text.split(' ')[0].split('-')[2]))).first()
+                                                    int(update.message.text.split(' ')[0].split('-')[2])),
+                        Sales.deliveryman_id == db_sess.query(Deliverymen).filter(
+                            Deliverymen.name == update.message.text.split(' ')[1]).first().id).first()
                     if sales_good:
                         sales_good.is_send = True
                         db_sess.add(sales_good)
