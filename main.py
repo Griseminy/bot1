@@ -593,6 +593,7 @@ def handler(update, context):
                             amount += len(elem.deliverygood_ids.split('&'))
                         update.message.reply_text(f"Статистика "
                                                   f"{db_sess.query(Deliverymen).get(context.user_data['deliveryman']).name}\n"
+                                                  f"Денег {calculate_money(db_sess, context.user_data['deliveryman'])}\n"
                                                   f"Зарплата: {salary}\n"
                                                   f"Скинуто: {total}\n"
                                                   f"Продано штук: {amount}\n"
@@ -610,6 +611,7 @@ def handler(update, context):
                             total += elem.total
                             amount += len(elem.deliverygood_ids.split('&'))
                         update.message.reply_text(f"Статистика общее\n"
+                                                  f"Денег {calculate_money(db_sess, None)}\n"
                                                   f"Зарплата: {salary}\n"
                                                   f"Скинуто: {total}\n"
                                                   f"Продано штук: {amount}\n"
@@ -903,6 +905,27 @@ def handler(update, context):
     except:
         update.message.reply_text('Ошибка')
         return start(update, context)
+
+
+def calculate_money(db_sess, id):
+    money = 0
+    if id is None:
+        for elem in db_sess.query(Brends).all():
+            amount_goods = 0
+            for ele in db_sess.query(Goods).filter(Goods.brend == elem).all():
+                for el in db_sess.query(Delivery_goods).filter(Delivery_goods.good == ele).all():
+                    amount_goods += el.amount
+            money += (elem.price - elem.salary) * amount_goods
+    else:
+        for elem in db_sess.query(Brends).all():
+            amount_goods = 0
+            for ele in db_sess.query(Goods).filter(Goods.brend == elem).all():
+                for el in db_sess.query(Delivery_goods).filter(
+                        Delivery_goods.good == ele,
+                        Delivery_goods.deliveryman_id == id).all():
+                    amount_goods += el.amount
+            money += (elem.price - elem.salary) * amount_goods
+    return money
 
 
 def sell_good(delivery_id, deliveryman_id, brend_id, discount_number):
