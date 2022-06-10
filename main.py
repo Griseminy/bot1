@@ -125,7 +125,7 @@ def handler(update, context):
                 else:
                     context.user_data['new_good'] = {0: update.message.text.split('\n')[0]}
                     db_sess = db_session.create_session()
-                    db_sess.add(Brends(brend=context.user_data['new_good'][0],
+                    db_sess.add(Brends(brend=context.user_data['new_good'][0].rstrip(),
                                        price=int(update.message.text.split('\n')[1]),
                                        discount_1=int(update.message.text.split('\n')[3].split('/')[0]),
                                        discount_2=int(update.message.text.split('\n')[3].split('/')[1]),
