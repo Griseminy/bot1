@@ -1,5 +1,10 @@
 import datetime
 import itertools
+
+from sqlalchemy.sql import extract
+from telegram import ReplyKeyboardMarkup
+from telegram.ext import Updater, MessageHandler, Filters, CommandHandler
+
 from data import db_session
 from data.brends import Brends
 from data.delivery_goods import Delivery_goods
@@ -10,16 +15,48 @@ from settings import add_deliverymen
 from settings import admin, admin_2
 from settings import deliverymen
 from settings import delyverymen_id
+from settings import sberbank, alfabank
 from settings import text_chat
-from sqlalchemy.sql import extract
-from telegram import ReplyKeyboardMarkup
-from telegram.ext import Updater, MessageHandler, Filters, CommandHandler
+from settings import text_start
 
-TOKEN = '5301614535:AAGAjCg3CopbFtvzUQVGLAkE9lOpNsbnX-Q'
+TOKEN = '5478798012:AAHOWISNLFiv4P4qusEsnoJgJySTADiSnak'
 
 
 def start(update, context):
     try:
+        context.user_data['locality'] = {}
+        context.user_data['locality'][1] = 'Старт'
+        if update.message.chat.id == admin or update.message.chat.id == admin_2:
+            update.message.reply_text('Нажмите кнопки снизу',
+                                      reply_markup=ReplyKeyboardMarkup([['Наличие', 'Изменить количество'],
+                                                                        ['Добавить линейку', 'Изменить линейку'],
+                                                                        ['Проверка', 'Статистика']],
+                                                                       resize_keyboard=True,
+                                                                       one_time_keyboard=True))
+        elif update.message.chat.id in deliverymen.values():
+            context.user_data['user_id_db'] = db_session.create_session().query(
+                Deliverymen).filter(Deliverymen.user_id == update.message.chat.id).first().id
+            update.message.reply_text('Нажмите кнопки снизу', reply_markup=ReplyKeyboardMarkup([['Продать', 'Наличие'],
+                                                                                                ['Статистика за день',
+                                                                                                 'Статистика за месяц'],
+                                                                                                [
+                                                                                                    'Отправить на проверку',
+                                                                                                    'Нужно перевести']],
+                                                                                               resize_keyboard=True,
+                                                                                               one_time_keyboard=True))
+        else:
+            update.message.reply_text(text_start)
+            update.message.reply_text('Нажмите кнопки на клавиатуре',
+                                      reply_markup=ReplyKeyboardMarkup([['Наличие'], ['Доставка']],
+                                                                       resize_keyboard=True,
+                                                                       one_time_keyboard=True))
+    except:
+        return start(update, context)
+
+
+def error_handler(update, context):
+    try:
+        update.message.reply_text('Упс... Что-то пошло не так')
         context.user_data['locality'] = {}
         context.user_data['locality'][1] = 'Старт'
         if update.message.chat.id == admin or update.message.chat.id == admin_2:
@@ -46,8 +83,38 @@ def start(update, context):
                                                                        resize_keyboard=True,
                                                                        one_time_keyboard=True))
     except:
-        update.message.reply_text('Ошибка')
-        return start(update, context)
+        return error_handler(update, context)
+
+
+def start_menu_handler(update, context):
+    try:
+        context.user_data['locality'] = {}
+        context.user_data['locality'][1] = 'Старт'
+        if update.message.chat.id == admin or update.message.chat.id == admin_2:
+            update.message.reply_text('Возврат в меню',
+                                      reply_markup=ReplyKeyboardMarkup([['Наличие', 'Изменить количество'],
+                                                                        ['Добавить линейку', 'Изменить линейку'],
+                                                                        ['Проверка', 'Статистика']],
+                                                                       resize_keyboard=True,
+                                                                       one_time_keyboard=True))
+        elif update.message.chat.id in deliverymen.values():
+            context.user_data['user_id_db'] = db_session.create_session().query(
+                Deliverymen).filter(Deliverymen.user_id == update.message.chat.id).first().id
+            update.message.reply_text('Возврат в меню', reply_markup=ReplyKeyboardMarkup([['Продать', 'Наличие'],
+                                                                                          ['Статистика за день',
+                                                                                           'Статистика за месяц'],
+                                                                                          [
+                                                                                              'Отправить на проверку',
+                                                                                              'Нужно перевести']],
+                                                                                         resize_keyboard=True,
+                                                                                         one_time_keyboard=True))
+        else:
+            update.message.reply_text('Возврат в меню',
+                                      reply_markup=ReplyKeyboardMarkup([['Наличие'], ['Доставка']],
+                                                                       resize_keyboard=True,
+                                                                       one_time_keyboard=True))
+    except:
+        return error_handler(update, context)
 
 
 def handler(update, context):
@@ -107,7 +174,7 @@ def handler(update, context):
                                                                                    one_time_keyboard=True))
                     else:
                         update.message.reply_text('Ничего не найдено')
-                        return start(update, context)
+                        return start_menu_handler(update, context)
                 elif update.message.text == 'Статистика':
                     reply_keyboard = [[elem] for elem in deliverymen]
                     reply_keyboard.append(['Общее'])
@@ -121,7 +188,7 @@ def handler(update, context):
             # Добавление новой линейки
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Добавить линейку':
                 if update.message.text == 'Назад':
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 else:
                     context.user_data['new_good'] = {0: update.message.text.split('\n')[0]}
                     db_sess = db_session.create_session()
@@ -141,18 +208,18 @@ def handler(update, context):
             elif context.user_data['locality'][len(context.user_data['locality'])] == \
                     'Добавить вкус новой линейки':
                 if update.message.text == 'Отмена':
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 else:
                     if add_goods(context.user_data['new_good'][0], update.message.text.split('\n')):
                         update.message.reply_text('Бренд и вкусы успешно добавлены')
+                        return start_menu_handler(update, context)
                     else:
-                        update.message.reply_text('Ошибка')
-                    return start(update, context)
+                        return error_handler(update, context)
             #
             # Изменение линейки
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Изменить линейку':
                 if update.message.text == 'Назад':
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 else:
                     brend_id = check_brend(update.message.text)
                     if brend_id:
@@ -173,10 +240,10 @@ def handler(update, context):
                                                                                    one_time_keyboard=True))
                     else:
                         update.message.reply_text('Линейка не найдена')
-                        return start(update, context)
+                        return start_menu_handler(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Выбор изменения в линейке':
                 if update.message.text == 'Отмена':
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 elif update.message.text.split(' ')[0] == 'Цену':
                     context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Изменение цены в линейке'
                     update.message.reply_text('Введите новую цену',
@@ -230,31 +297,31 @@ def handler(update, context):
                                                                                one_time_keyboard=True))
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Изменение цены в линейке':
                 if update.message.text == 'Отмена':
-                    return start(update, context)
-                if redact_brend_price(context.user_data['redactor_brend'][0], int(update.message.text)):
+                    return start_menu_handler(update, context)
+                elif redact_brend_price(context.user_data['redactor_brend'][0], int(update.message.text)):
                     update.message.reply_text('Цена успешно изменена')
+                    return start_menu_handler(update, context)
                 else:
-                    update.message.reply_text('Ошибка')
-                return start(update, context)
+                    return error_handler(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Изменение названия в линейке':
                 if update.message.text == 'Отмена':
-                    return start(update, context)
-                if redact_brend_title(context.user_data['redactor_brend'][0], update.message.text):
+                    return start_menu_handler(update, context)
+                elif redact_brend_title(context.user_data['redactor_brend'][0], update.message.text):
                     update.message.reply_text('Название успешно изменено')
+                    return start_menu_handler(update, context)
                 else:
-                    update.message.reply_text('Ошибка')
-                return start(update, context)
+                    return error_handler(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Изменение зарплаты в линейке':
                 if update.message.text == 'Отмена':
-                    return start(update, context)
-                if redact_brend_salary(context.user_data['redactor_brend'][0], update.message.text):
+                    return start_menu_handler(update, context)
+                elif redact_brend_salary(context.user_data['redactor_brend'][0], update.message.text):
                     update.message.reply_text('Зарплата успешно изменена')
+                    return start_menu_handler(update, context)
                 else:
-                    update.message.reply_text('Ошибка')
-                return start(update, context)
+                    return error_handler(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Изменить вкус':
                 if update.message.text == 'Отмена':
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 else:
                     context.user_data['redactor_brend'][1] = update.message.text
                     context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Новое название вкуса'
@@ -264,25 +331,25 @@ def handler(update, context):
                                                                                one_time_keyboard=True))
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Добавить вкус':
                 if update.message.text == 'Отмена':
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 else:
                     if add_good(context.user_data['redactor_brend'][0], update.message.text):
                         update.message.reply_text('Вкус успешно добавлен')
+                        return start_menu_handler(update, context)
                     else:
-                        update.message.reply_text('Ошибка')
-                return start(update, context)
+                        return error_handler(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Новое название вкуса':
                 if update.message.text == 'Отмена':
-                    return start(update, context)
-                if redact_good_title(context.user_data['redactor_brend'][0], context.user_data['redactor_brend'][1],
-                                     update.message.text):
+                    return start_menu_handler(update, context)
+                elif redact_good_title(context.user_data['redactor_brend'][0], context.user_data['redactor_brend'][1],
+                                       update.message.text):
                     update.message.reply_text('Название успешно изменено')
+                    return start_menu_handler(update, context)
                 else:
-                    update.message.reply_text('Ошибка')
-                return start(update, context)
+                    return error_handler(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Изменить скидку':
                 if update.message.text == 'Отмена':
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 elif '/' in update.message.text:
                     db_sess = db_session.create_session()
                     brend = db_sess.query(Brends).get(context.user_data['redactor_brend'][0])
@@ -291,9 +358,9 @@ def handler(update, context):
                     db_sess.add(brend)
                     db_sess.commit()
                     update.message.reply_text('Успешно')
+                    return start_menu_handler(update, context)
                 else:
-                    update.message.reply_text('Ошибка')
-                return start(update, context)
+                    return error_handler(update, context)
             #
             # Изменение количества у доставщика
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Изменить количество доставщика':
@@ -301,7 +368,7 @@ def handler(update, context):
                                                    'good_id': None, 'deliveryman_id': None, 'amount': None}
                 db_sess = db_session.create_session()
                 if update.message.text == 'Назад':
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 elif (update.message.text,) in db_sess.query(Deliverymen.name).all():
                     context.user_data['add_amount']['deliveryman_id'] = db_sess.query(
                         Deliverymen).filter(Deliverymen.name == update.message.text).first().id
@@ -313,11 +380,10 @@ def handler(update, context):
                                                                                resize_keyboard=True,
                                                                                one_time_keyboard=True))
                 else:
-                    update.message.reply_text('Ошибка')
-                    return start(update, context)
+                    return error_handler(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Выбор изменения доставщика':
                 if update.message.text == 'Отмена':
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 elif update.message.text == 'Убавить товар':
                     reply_keyboard = [[elem.brend] for elem in db_session.create_session().query(
                         Brends).all()]
@@ -336,12 +402,11 @@ def handler(update, context):
                                                                                resize_keyboard=True,
                                                                                one_time_keyboard=True))
                 else:
-                    update.message.reply_text('Ошибка')
-                    return start(update, context)
+                    return error_handler(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Убавить товар':
                 db_sess = db_session.create_session()
                 if update.message.text == 'Отмена':
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 elif (update.message.text,) in db_sess.query(Brends.brend).all():
                     brend = db_sess.query(Brends).filter(Brends.brend == update.message.text).first()
                     context.user_data['add_amount']['brend_id'] = brend.id
@@ -356,12 +421,11 @@ def handler(update, context):
                                                                                resize_keyboard=True,
                                                                                one_time_keyboard=True))
                 else:
-                    update.message.reply_text('Ошибка')
-                    return start(update, context)
+                    return error_handler(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Добавить товар':
                 db_sess = db_session.create_session()
                 if update.message.text == 'Отмена':
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 elif (update.message.text,) in db_sess.query(Brends.brend).all():
                     brend = db_sess.query(Brends).filter(Brends.brend == update.message.text).first()
                     context.user_data['add_amount']['brend_id'] = brend.id
@@ -376,13 +440,12 @@ def handler(update, context):
                                                                                resize_keyboard=True,
                                                                                one_time_keyboard=True))
                 else:
-                    update.message.reply_text('Ошибка')
-                    return start(update, context)
+                    return error_handler(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == \
                     'Выбрать товар доставщика убавления':
                 db_sess = db_session.create_session()
                 if update.message.text == 'Отмена':
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 elif (update.message.text.split(' -')[0],) in db_sess.query(Goods.title).all():
                     good_deliver = db_sess.query(Delivery_goods).filter(
                         Delivery_goods.good_id == db_sess.query(
@@ -401,13 +464,12 @@ def handler(update, context):
                                                                                resize_keyboard=True,
                                                                                one_time_keyboard=True))
                 else:
-                    update.message.reply_text('Ошибка')
-                    return start(update, context)
+                    return error_handler(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == \
                     'Выбрать товар доставщика добавления':
                 db_sess = db_session.create_session()
                 if update.message.text == 'Отмена':
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 elif (update.message.text.split(' -')[0],) in db_sess.query(Goods.title).all():
                     good_deliver = db_sess.query(Delivery_goods).filter(
                         Delivery_goods.good_id == db_sess.query(
@@ -427,13 +489,12 @@ def handler(update, context):
                                                                                resize_keyboard=True,
                                                                                one_time_keyboard=True))
                 else:
-                    update.message.reply_text('Ошибка')
-                    return start(update, context)
+                    return error_handler(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == \
                     'Ввод количества убавления':
                 try:
                     if update.message.text == 'Отмена':
-                        return start(update, context)
+                        return start_menu_handler(update, context)
                     elif 0 < int(update.message.text) <= context.user_data['add_amount']['amount']:
                         db_sess = db_session.create_session()
                         good_deliver = db_sess.query(Delivery_goods).filter(Delivery_goods.id ==
@@ -457,7 +518,7 @@ def handler(update, context):
                     'Ввод количества добавления':
                 try:
                     if update.message.text == 'Отмена':
-                        return start(update, context)
+                        return start_menu_handler(update, context)
                     else:
                         db_sess = db_session.create_session()
                         good_deliver = db_sess.query(Delivery_goods).filter(Delivery_goods.id ==
@@ -491,7 +552,7 @@ def handler(update, context):
                                                                                resize_keyboard=True,
                                                                                one_time_keyboard=True))
                 elif update.message.text == 'Нет':
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 else:
                     update.message.reply_text(f'Ошибка. Выберите еще раз',
                                               reply_markup=ReplyKeyboardMarkup([['Да'], ['Нет']],
@@ -502,7 +563,7 @@ def handler(update, context):
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Наличие':
                 db_sess = db_session.create_session()
                 if update.message.text == 'Назад':
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 elif update.message.text == 'Общее':
                     text_amount = f'Общее наличие:\n'
                     for elem in db_sess.query(Brends).all():
@@ -513,6 +574,7 @@ def handler(update, context):
                                 amount_good += el.amount
                             text_amount += f'{ele.title} {amount_good}\n'
                     update.message.reply_text(text_amount)
+                    return start_menu_handler(update, context)
                 elif (update.message.text,) in db_sess.query(Deliverymen.name).all():
                     deliver = db_sess.query(Deliverymen).filter(Deliverymen.name == update.message.text).first()
                     text_amount = f'Жидкость в наличии у {deliver.name}:\n'
@@ -524,13 +586,12 @@ def handler(update, context):
                                 Delivery_goods.deliveryman == deliver).first()
                             text_amount += f'{el.title} {deliv_good.amount}\n'
                     update.message.reply_text(text_amount)
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 else:
-                    update.message.reply_text('Ошибка')
-                return start(update, context)
+                    return error_handler(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Проверка 1':
                 if update.message.text == 'Отмена':
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 elif '-' in update.message.text:
                     db_sess = db_session.create_session()
                     sales_good = db_sess.query(Sales).filter(
@@ -544,16 +605,16 @@ def handler(update, context):
                         db_sess.add(sales_good)
                         db_sess.commit()
                         update.message.reply_text('Проверено')
-                        return start(update, context)
+                        return start_menu_handler(update, context)
                     else:
                         update.message.reply_text('Ничего не найдено')
-                        return start(update, context)
+                        return start_menu_handler(update, context)
                 else:
-                    return start(update, context)
+                    return start_menu_handler(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Статистика':
                 db_sess = db_session.create_session()
                 if update.message.text == 'Назад':
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 elif update.message.text == 'Общее':
                     context.user_data['deliveryman'] = None
                     context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Статистика 2'
@@ -572,12 +633,11 @@ def handler(update, context):
                                                                                resize_keyboard=True,
                                                                                one_time_keyboard=True))
                 else:
-                    update.message.reply_text('Ошибка')
-                    return start(update, context)
+                    return error_handler(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Статистика 2':
                 db_sess = db_session.create_session()
                 if update.message.text == 'Отмена':
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 elif update.message.text == 'Месяц':
                     if context.user_data['deliveryman']:
                         salary = 0
@@ -598,7 +658,7 @@ def handler(update, context):
                                                   f"Скинуто: {total}\n"
                                                   f"Продано штук: {amount}\n"
                                                   f"Средняя цена позиции: {(total + salary) / amount if amount > 0 else 0}\n")
-                        return start(update, context)
+                        return start_menu_handler(update, context)
                     else:
                         salary = 0
                         total = 0
@@ -616,7 +676,7 @@ def handler(update, context):
                                                   f"Скинуто: {total}\n"
                                                   f"Продано штук: {amount}\n"
                                                   f"Средняя цена позиции: {(total + salary) / amount if amount > 0 else 0}\n")
-                        return start(update, context)
+                        return start_menu_handler(update, context)
                 elif update.message.text == 'Число месяца':
                     context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Статистика 3'
                     if context.user_data['deliveryman']:
@@ -641,11 +701,10 @@ def handler(update, context):
                                                                                    resize_keyboard=True,
                                                                                    one_time_keyboard=True))
                 else:
-                    update.message.reply_text('Ошибка')
-                    return start(update, context)
+                    return error_handler(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Статистика 3':
                 if update.message.text == 'Отмена':
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 elif '-' in update.message.text:
                     db_sess = db_session.create_session()
                     if context.user_data['deliveryman']:
@@ -663,7 +722,7 @@ def handler(update, context):
                                                   f"Скинуто: {sales_good.total}\n"
                                                   f"Продано штук: {kolvo}\n"
                                                   f"Средняя цена позиции: {sredn}")
-                        return start(update, context)
+                        return start_menu_handler(update, context)
                     else:
                         salary = 0
                         total = 0
@@ -680,10 +739,9 @@ def handler(update, context):
                                                   f'Скинуто: {total}\n'
                                                   f'Продано штук: {amount}\n'
                                                   f'Средняя цена позиции: {(salary + total) / amount if amount > 0 else 0}\n')
-                        return start(update, context)
+                        return start_menu_handler(update, context)
                 else:
-                    update.message.reply_text('Ошибка')
-                    return start(update, context)
+                    return error_handler(update, context)
         #
         # Меню доставщика
         elif update.message.chat.id in deliverymen.values():
@@ -709,7 +767,7 @@ def handler(update, context):
                                 Delivery_goods.deliveryman == deliver).first()
                             text_amount += f'{el.title} {deliv_good.amount}\n'
                     update.message.reply_text(text_amount)
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 elif update.message.text == 'Отправить на проверку':
                     send_on_check = db_session.create_session().query(
                         Sales).filter(Sales.on_check == False,
@@ -723,7 +781,7 @@ def handler(update, context):
                                                                                    one_time_keyboard=True))
                     else:
                         update.message.reply_text('Ничего не найдено')
-                        return start(update, context)
+                        return start_menu_handler(update, context)
                 elif update.message.text == 'Статистика за день':
                     today = db_session.create_session().query(Sales).filter(
                         Sales.deliveryman_id == context.user_data['user_id_db'],
@@ -736,7 +794,7 @@ def handler(update, context):
                                                   f'Средняя цена позиции: {sredn}\n')
                     else:
                         update.message.reply_text('Пока что ничего не продано')
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 elif update.message.text == 'Статистика за месяц':
                     month = db_session.create_session().query(Sales).filter(
                         Sales.deliveryman_id == context.user_data['user_id_db'],
@@ -754,7 +812,7 @@ def handler(update, context):
                                               f'Скинуто: {total}\n'
                                               f'Продано штук: {amount}\n'
                                               f'Средняя цена позиции: {(salary + total) / amount if amount > 0 else 0}\n')
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 elif update.message.text == 'Нужно перевести':
                     need_send = db_session.create_session().query(Sales).filter(
                         Sales.deliveryman_id == context.user_data['user_id_db'],
@@ -764,14 +822,16 @@ def handler(update, context):
                         stroka += f"{elem.date}\n" \
                                   f"{elem.total}\n\n"
                     if stroka != '':
-                        update.message.reply_text(stroka + 'Не забывай приписку долг и сегодняшнюю дату')
+                        update.message.reply_text(stroka + f'Не забывай приписку долг и сегодняшнюю дату\n'
+                                                           f'Сбер {sberbank}\n'
+                                                           f'Альфа {alfabank}')
                     else:
                         update.message.reply_text('Всё скинуто')
-                    return start(update, context)
+                    return start_menu_handler(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Продать 1':
                 brend_id = check_brend(update.message.text)
                 if update.message.text == 'Назад':
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 elif brend_id:
                     db_sess = db_session.create_session()
                     context.user_data['sell_good'] = {'brend_id': brend_id}
@@ -791,10 +851,10 @@ def handler(update, context):
                                                                                one_time_keyboard=True))
                 else:
                     update.message.reply_text('Линейка не найдена')
-                    return start(update, context)
+                    return start_menu_handler(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Продать 2':
                 if update.message.text == 'Отмена':
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 elif (update.message.text.split(' -')[0],) in db_session.create_session().query(Goods.title).all():
                     context.user_data['sell_good']['delivery_good_title'] = update.message.text.split(' -')[0]
                     context.user_data['locality'][len(context.user_data['locality']) + 1] = \
@@ -804,11 +864,10 @@ def handler(update, context):
                                                                                resize_keyboard=True,
                                                                                one_time_keyboard=True))
                 else:
-                    update.message.reply_text('Ошибка')
-                    return start(update, context)
+                    return error_handler(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Продать 3':
                 if update.message.text == 'Отмена':
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 elif update.message.text in ['0', '1', '2']:
                     db_sess = db_session.create_session()
                     good_deliver = db_sess.query(Delivery_goods).filter(
@@ -826,12 +885,12 @@ def handler(update, context):
                         db_sess.add(good_deliver)
                         db_sess.commit()
                         update.message.reply_text('Успешно!')
+                        return start_menu_handler(update, context)
                     else:
-                        update.message.reply_text('Ошибка')
-                    return start(update, context)
+                        return error_handler(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Проверка 1':
                 if update.message.text == 'Отмена':
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 elif '-' in update.message.text:
                     db_sess = db_session.create_session()
                     sales_good = db_sess.query(Sales).filter(
@@ -845,12 +904,12 @@ def handler(update, context):
                         db_sess.add(sales_good)
                         db_sess.commit()
                         update.message.reply_text('Отправлено на проверку платежа')
-                        return start(update, context)
+                        return start_menu_handler(update, context)
                     else:
                         update.message.reply_text('Ничего не найдено')
-                        return start(update, context)
+                        return start_menu_handler(update, context)
                 else:
-                    return start(update, context)
+                    return start_menu_handler(update, context)
         else:
             if context.user_data['locality'][len(context.user_data['locality'])] == 'Старт':
                 if update.message.text == 'Наличие':
@@ -862,33 +921,39 @@ def handler(update, context):
                                                                                one_time_keyboard=True))
                 elif update.message.text == 'Доставка':
                     update.message.reply_text(text_chat)
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 else:
-                    update.message.reply_text('Ошибка')
-                    return start(update, context)
+                    return error_handler(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Наличие 1':
                 db_sess = db_session.create_session()
                 if update.message.text == 'Отмена':
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 elif (update.message.text,) in db_sess.query(Deliverymen.name).all():
                     deliver = db_sess.query(Deliverymen).filter(
                         Deliverymen.name == update.message.text).first()
                     context.user_data['user'] = deliver.id
                     context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Наличие 2'
-                    reply_keyboard = [[elem.brend] for elem in db_sess.query(Brends).all()]
+                    reply_keyboard = [
+                        [f'{elem.brend} - {elem.price} руб ' + str(sum(map(lambda kort: kort[0], db_sess.query(
+                            Delivery_goods.amount).filter(
+                            Delivery_goods.good_id.in_(
+                                ele.id for ele in db_sess.query(Goods).filter(Goods.brend == elem).all()),
+                            Delivery_goods.deliveryman == deliver
+                        ).all()))) + ' шт'] for elem in db_sess.query(Brends).all()]
                     reply_keyboard.append(['Отмена'])
                     update.message.reply_text('Выберите линейку',
                                               reply_markup=ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True,
                                                                                one_time_keyboard=True))
                 else:
                     update.message.reply_text('Ничего не найдено')
-                    return start(update, context)
+                    return start_menu_handler(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Наличие 2':
                 db_sess = db_session.create_session()
                 if update.message.text == 'Отмена':
-                    return start(update, context)
-                elif (update.message.text,) in db_sess.query(Brends.brend).all():
-                    brend_good = db_sess.query(Brends).filter(Brends.brend == update.message.text).first()
+                    return start_menu_handler(update, context)
+                elif (update.message.text.split(' -')[0],) in db_sess.query(Brends.brend).all():
+                    brend_good = db_sess.query(Brends).filter(
+                        Brends.brend == update.message.text.split(' -')[0]).first()
                     deliver = db_sess.query(Deliverymen).get(context.user_data['user'])
                     text_amount = f'Жидкость {brend_good.brend + " " + str(brend_good.price)} рублей у' \
                                   f' {delyverymen_id[deliver.name]}:\n'
@@ -898,13 +963,12 @@ def handler(update, context):
                             Delivery_goods.deliveryman == deliver).first()
                         text_amount += f'{el.title} {deliv_good.amount}\n'
                     update.message.reply_text(text_amount)
-                    return start(update, context)
+                    return start_menu_handler(update, context)
                 else:
                     update.message.reply_text('Ничего не найдено')
-                    return start(update, context)
-    except:
-        update.message.reply_text('Ошибка')
-        return start(update, context)
+                    return start_menu_handler(update, context)
+    except Exception as e:
+        return error_handler(update, context)
 
 
 def calculate_money(db_sess, id):
