@@ -1,8 +1,8 @@
 from data import db_session
 from data.deliverymen import Deliverymen
 
-deliverymen = {'Антон': 1904018585, 'Aртём': 636503360, 'Глеб': 787719084}
-admin = 190401858511
+deliverymen = {'Антон': 640287782, 'Aртём': 636503360, 'Глеб': 787719084}
+admin = 1904018585
 admin_2 = 754288169
 delyverymen_id = {'Антон': '@slutmee', 'Aртём': '@soberaf', 'Глеб': '@Senkuxd'}
 text_chat = '''Наш канал t.me/GhostVapeKgn
