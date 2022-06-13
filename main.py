@@ -53,7 +53,7 @@ def start(update, context):
                                                                        resize_keyboard=True,
                                                                        one_time_keyboard=True))
     except:
-        return start(update, context)
+        return error_handler(update, context)
 
 
 def error_handler(update, context):
@@ -206,6 +206,8 @@ def handler(update, context):
                                               reply_markup=ReplyKeyboardMarkup([['Отмена']],
                                                                                resize_keyboard=True,
                                                                                one_time_keyboard=True))
+                else:
+                    error_handler(update, context)
             #
             # Добавление новой линейки
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Добавить линейку':
