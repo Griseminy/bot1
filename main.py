@@ -1,6 +1,7 @@
 import datetime
 import itertools
 
+from openpyxl import Workbook, load_workbook
 from sqlalchemy.sql import extract
 from telegram import ReplyKeyboardMarkup
 from telegram.ext import Updater, MessageHandler, Filters, CommandHandler
@@ -30,7 +31,8 @@ def start(update, context):
             update.message.reply_text('Нажмите кнопки снизу',
                                       reply_markup=ReplyKeyboardMarkup([['Наличие', 'Изменить количество'],
                                                                         ['Добавить линейку', 'Изменить линейку'],
-                                                                        ['Проверка', 'Статистика']],
+                                                                        ['Проверка', 'Статистика'],
+                                                                        ['Получить форму', 'Выслать форму']],
                                                                        resize_keyboard=True,
                                                                        one_time_keyboard=True))
         elif update.message.chat.id in deliverymen.values():
@@ -63,7 +65,8 @@ def error_handler(update, context):
             update.message.reply_text('Нажмите кнопки снизу',
                                       reply_markup=ReplyKeyboardMarkup([['Наличие', 'Изменить количество'],
                                                                         ['Добавить линейку', 'Изменить линейку'],
-                                                                        ['Проверка', 'Статистика']],
+                                                                        ['Проверка', 'Статистика'],
+                                                                        ['Получить форму', 'Выслать форму']],
                                                                        resize_keyboard=True,
                                                                        one_time_keyboard=True))
         elif update.message.chat.id in deliverymen.values():
@@ -94,7 +97,8 @@ def start_menu_handler(update, context):
             update.message.reply_text('Возврат в меню',
                                       reply_markup=ReplyKeyboardMarkup([['Наличие', 'Изменить количество'],
                                                                         ['Добавить линейку', 'Изменить линейку'],
-                                                                        ['Проверка', 'Статистика']],
+                                                                        ['Проверка', 'Статистика'],
+                                                                        ['Получить форму', 'Выслать форму']],
                                                                        resize_keyboard=True,
                                                                        one_time_keyboard=True))
         elif update.message.chat.id in deliverymen.values():
@@ -182,6 +186,24 @@ def handler(update, context):
                     context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Статистика'
                     update.message.reply_text('Выберите доставщика',
                                               reply_markup=ReplyKeyboardMarkup(reply_keyboard,
+                                                                               resize_keyboard=True,
+                                                                               one_time_keyboard=True))
+                elif update.message.text == 'Получить форму':
+                    db_sess = db_session.create_session()
+                    wb = Workbook()
+                    ws = wb.active
+                    ws.append(['', ''] + list(deliverymen.keys()))
+                    for elem in db_sess.query(Brends).all():
+                        ws.append([elem.brend])
+                        for ele in db_sess.query(Goods).filter(Goods.brend == elem).all():
+                            ws.append(['', ele.title])
+                    wb.save('form.xlsx')
+                    update.message.reply_document(document=open('form.xlsx', 'rb'), filename='form.xlsx')
+                    return start_menu_handler(update, context)
+                elif update.message.text == 'Выслать форму':
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Выслать форму 2'
+                    update.message.reply_text('Пришлите файл',
+                                              reply_markup=ReplyKeyboardMarkup([['Отмена']],
                                                                                resize_keyboard=True,
                                                                                one_time_keyboard=True))
             #
@@ -742,6 +764,47 @@ def handler(update, context):
                         return start_menu_handler(update, context)
                 else:
                     return error_handler(update, context)
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Выслать форму 2':
+                if update.message.text == 'Отмена':
+                    return start_menu_handler(update, context)
+                with open("goods.xlsx", 'wb') as f:
+                    context.bot.get_file(update.message.document).download(out=f)
+                f.close
+                wb = load_workbook('goods.xlsx')
+                ws = wb.active
+                xlsx_deliverymen = {}
+                for elem in ws[1]:
+                    if elem.value is not None:
+                        xlsx_deliverymen[elem.column] = elem.value
+                spis = []
+                for elem in ws['A']:
+                    if elem.value is not None:
+                        spis.append(elem)
+                schetchik = 1
+                db_sess = db_session.create_session()
+                for elem in spis:
+                    for row in ws.iter_rows(min_row=elem.row + 1,
+                                            max_row=spis[schetchik].row - 1 if schetchik < len(spis) else None,
+                                            min_col=elem.column + 1,
+                                            max_col=elem.column + 1 + len(xlsx_deliverymen)):
+                        taste = row[0]
+                        for cell in row[1:]:
+                            if cell.value is not None:
+                                good_deliver = db_sess.query(Delivery_goods).filter(
+                                    Delivery_goods.good == db_sess.query(
+                                        Goods
+                                    ).filter(
+                                        Goods.title == taste.value,
+                                        Goods.brend == db_sess.query(Brends).filter(
+                                            Brends.brend == elem.value).first()
+                                    ).first(),
+                                    Delivery_goods.deliveryman == db_sess.query(Deliverymen).filter(
+                                        Deliverymen.name == xlsx_deliverymen[cell.column]).first()).first()
+                                good_deliver.amount += int(cell.value)
+                                db_sess.add(good_deliver)
+                                db_sess.commit()
+                    schetchik += 1
+                return start_menu_handler(update, context)
         #
         # Меню доставщика
         elif update.message.chat.id in deliverymen.values():
@@ -1111,12 +1174,13 @@ def main():
     updater = Updater(TOKEN)
     dp = updater.dispatcher
     dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handler))
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command | Filters.document, handler))
     updater.start_polling()
     updater.idle()
 
 
 if __name__ == '__main__':
+    # help(MessageHandler)
     db_session.global_init(f"db/goods.db")
     add_deliverymen(deliverymen)
     main()
