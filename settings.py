@@ -1,10 +1,10 @@
 from data import db_session
 from data.deliverymen import Deliverymen
 
-deliverymen = {'Антон': 640287782, 'Aртём': 636503360, 'Глеб': 787719084}
+deliverymen = {'Антон': 640287782, 'Aртём': 636503360}
 admin = 1904018585
 admin_2 = 754288169
-delyverymen_id = {'Антон': '@slutmee', 'Aртём': '@soberaf', 'Глеб': '@Senkuxd'}
+delyverymen_id = {'Антон': '@slutmee', 'Aртём': '@soberaf'}
 text_chat = '''Наш канал t.me/GhostVapeKgn
 Переходите в закреп, там удобное меню
 
@@ -15,9 +15,6 @@ text_chat = '''Наш канал t.me/GhostVapeKgn
 
 Ксм-Швейная фирма-Рынок-Звёздный:
 @soberaf
-
-Центральный рынок-гостиница Москва:
-@Senkuxd
 
 Оплата производится только при получении товара!
 
