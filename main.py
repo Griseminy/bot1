@@ -979,7 +979,7 @@ def handler(update, context):
             if context.user_data['locality'][len(context.user_data['locality'])] == 'Старт':
                 if update.message.text == 'Наличие':
                     context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Наличие 1'
-                    reply_keyboard = [[elem.name] for elem in db_session.create_session().query(Deliverymen).all()]
+                    reply_keyboard = [[elem] for elem in deliverymen.keys()]
                     reply_keyboard.append(['Отмена'])
                     update.message.reply_text('Выберите доставщика',
                                               reply_markup=ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True,
@@ -1004,7 +1004,7 @@ def handler(update, context):
                             Delivery_goods.good_id.in_(
                                 ele.id for ele in db_sess.query(Goods).filter(Goods.brend == elem).all()),
                             Delivery_goods.deliveryman == deliver
-                        ).all()))) + ' шт'] for elem in db_sess.query(Brends).all()]
+                        ).all()))) + ' шт'] for elem in sorted(db_sess.query(Brends).all(), key=lambda x: -(x.price))]
                     reply_keyboard.append(['Отмена'])
                     update.message.reply_text('Выберите линейку',
                                               reply_markup=ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True,
