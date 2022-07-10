@@ -589,27 +589,28 @@ def handler(update, context):
                 if update.message.text == 'Назад':
                     return start_menu_handler(update, context)
                 elif update.message.text == 'Общее':
-                    text_amount = f'Общее наличие:\n'
+                    update.message.reply_text('Общее наличие:')
+                    # text_amount = f'Общее наличие:\n'
                     for elem in db_sess.query(Brends).all():
-                        text_amount += f'\n{elem.brend}\n'
+                        text_amount = f'{elem.brend}\n'
                         for ele in db_sess.query(Goods).filter(Goods.brend == elem).all():
                             amount_good = 0
                             for el in db_sess.query(Delivery_goods).filter(Delivery_goods.good == ele).all():
                                 amount_good += el.amount
                             text_amount += f'{ele.title} {amount_good}\n'
-                    update.message.reply_text(text_amount)
+                        update.message.reply_text(text_amount)
                     return start_menu_handler(update, context)
                 elif (update.message.text,) in db_sess.query(Deliverymen.name).all():
                     deliver = db_sess.query(Deliverymen).filter(Deliverymen.name == update.message.text).first()
-                    text_amount = f'Жидкость в наличии у {deliver.name}:\n'
+                    update.message.reply_text(f'Жидкость в наличии у {deliver.name}:')
                     for elem in db_sess.query(Brends).all():
-                        text_amount += f'\n{elem.brend}\n'
+                        text_amount = f'\n{elem.brend}\n'
                         for el in db_sess.query(Goods).filter(Goods.brend == elem).all():
                             deliv_good = db_sess.query(Delivery_goods).filter(
                                 Delivery_goods.good == el,
                                 Delivery_goods.deliveryman == deliver).first()
                             text_amount += f'{el.title} {deliv_good.amount}\n'
-                    update.message.reply_text(text_amount)
+                        update.message.reply_text(text_amount)
                     return start_menu_handler(update, context)
                 else:
                     return error_handler(update, context)
@@ -830,7 +831,8 @@ def handler(update, context):
                             deliv_good = db_sess.query(Delivery_goods).filter(
                                 Delivery_goods.good == el,
                                 Delivery_goods.deliveryman == deliver).first()
-                            text_amount += f'{el.title} {deliv_good.amount}\n'
+                            if deliv_good.amount > 0:
+                                text_amount += f'{el.title} {deliv_good.amount}\n'
                     update.message.reply_text(text_amount)
                     return start_menu_handler(update, context)
                 elif update.message.text == 'Отправить на проверку':
