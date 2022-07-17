@@ -134,8 +134,8 @@ def handler(update, context):
                                                                                resize_keyboard=True,
                                                                                one_time_keyboard=True))
                 elif update.message.text == 'Изменить линейку':
-                    reply_keyboard = [[elem.brend] for elem in db_session.create_session().query(
-                        Brends).all()]
+                    reply_keyboard = [[elem.brend] for elem in sorted(db_session.create_session().query(Brends).all(),
+                                                                      key=lambda x: -(x.price))]
                     reply_keyboard.append(['Назад'])
                     context.user_data['locality'][len(context.user_data['locality']) + 1] = \
                         'Изменить линейку'
@@ -259,6 +259,7 @@ def handler(update, context):
                                                                                      f'{brend.discount_2}'],
                                                                                     ['Изменить вкус'],
                                                                                     ['Добавить вкус'],
+                                                                                    ['Удалить линейку'],
                                                                                     ['Отмена']],
                                                                                    resize_keyboard=True,
                                                                                    one_time_keyboard=True))
@@ -308,6 +309,14 @@ def handler(update, context):
                     context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Изменить скидку'
                     update.message.reply_text('Введите новую скидку через /',
                                               reply_markup=ReplyKeyboardMarkup([['Отмена']],
+                                                                               resize_keyboard=True,
+                                                                               one_time_keyboard=True))
+                elif update.message.text == 'Удалить линейку':
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Удалить линейку'
+                    update.message.reply_text('Вы уверены?',
+                                              reply_markup=ReplyKeyboardMarkup([['Да'],
+                                                                                ['Нет'],
+                                                                                ['Отмена']],
                                                                                resize_keyboard=True,
                                                                                one_time_keyboard=True))
                 else:
@@ -382,6 +391,19 @@ def handler(update, context):
                     db_sess.add(brend)
                     db_sess.commit()
                     update.message.reply_text('Успешно')
+                    return start_menu_handler(update, context)
+                else:
+                    return error_handler(update, context)
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Удалить линейку':
+                if update.message.text == 'Отмена':
+                    return start_menu_handler(update, context)
+                elif update.message.text == 'Да':
+                    if delete_brand(context.user_data['redactor_brend'][0]):
+                        update.message.reply_text('Успешно')
+                        return start_menu_handler(update, context)
+                    else:
+                        return error_handler(update, context)
+                elif update.message.text == 'Нет':
                     return start_menu_handler(update, context)
                 else:
                     return error_handler(update, context)
@@ -1072,6 +1094,18 @@ def calculate_money(db_sess, id):
                     amount_goods += el.amount
             money += (elem.price - elem.salary) * amount_goods
     return money
+
+
+def delete_brand(id):
+    db_sess = db_session.create_session()
+    for elem in db_sess.query(Goods).filter(Goods.brend_id == id).all():
+        for el in db_sess.query(Delivery_goods).filter(Delivery_goods.good == elem).all():
+            db_sess.delete(el)
+        db_sess.delete(elem)
+    del_brend = db_sess.query(Brends).get(id)
+    db_sess.delete(del_brend)
+    db_sess.commit()
+    return True
 
 
 def sell_good(delivery_id, deliveryman_id, brend_id, discount_number):
