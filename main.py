@@ -589,27 +589,34 @@ def handler(update, context):
                 if update.message.text == 'Назад':
                     return start_menu_handler(update, context)
                 elif update.message.text == 'Общее':
-                    update.message.reply_text('Общее наличие:')
-                    # text_amount = f'Общее наличие:\n'
-                    for elem in db_sess.query(Brends).all():
-                        text_amount = f'{elem.brend}\n'
+                    text_amount = f'Общее наличие:\n'
+                    for elem in sorted(db_sess.query(Brends).all(), key=lambda x: -(x.price)):
+                        text_amount += f'\n{elem.brend} {elem.price} рублей\n'
                         for ele in db_sess.query(Goods).filter(Goods.brend == elem).all():
                             amount_good = 0
                             for el in db_sess.query(Delivery_goods).filter(Delivery_goods.good == ele).all():
                                 amount_good += el.amount
                             text_amount += f'{ele.title} {amount_good}\n'
+                    if len(text_amount) > 4000:
+                        for i in range(len(text_amount) // 4000 + 1):
+                            update.message.reply_text(text_amount[i * 4000: (i + 1) * 4000])
+                    else:
                         update.message.reply_text(text_amount)
                     return start_menu_handler(update, context)
                 elif (update.message.text,) in db_sess.query(Deliverymen.name).all():
                     deliver = db_sess.query(Deliverymen).filter(Deliverymen.name == update.message.text).first()
-                    update.message.reply_text(f'Жидкость в наличии у {deliver.name}:')
-                    for elem in db_sess.query(Brends).all():
-                        text_amount = f'\n{elem.brend}\n'
+                    text_amount = f'Жидкость в наличии у {deliver.name}:\n'
+                    for elem in sorted(db_sess.query(Brends).all(), key=lambda x: -(x.price)):
+                        text_amount += f'\n{elem.brend} {elem.price} рублей\n'
                         for el in db_sess.query(Goods).filter(Goods.brend == elem).all():
                             deliv_good = db_sess.query(Delivery_goods).filter(
                                 Delivery_goods.good == el,
                                 Delivery_goods.deliveryman == deliver).first()
                             text_amount += f'{el.title} {deliv_good.amount}\n'
+                    if len(text_amount) > 4000:
+                        for i in range(len(text_amount) // 4000 + 1):
+                            update.message.reply_text(text_amount[i * 4000: (i + 1) * 4000])
+                    else:
                         update.message.reply_text(text_amount)
                     return start_menu_handler(update, context)
                 else:
@@ -813,8 +820,11 @@ def handler(update, context):
         elif update.message.chat.id in deliverymen.values():
             if context.user_data['locality'][len(context.user_data['locality'])] == 'Старт':
                 if update.message.text == 'Продать':
-                    reply_keyboard = [[elem.brend] for elem in db_session.create_session().query(
-                        Brends).all()]
+                    db_sess = db_session.create_session()
+                    deliver = db_sess.query(Deliverymen).get(context.user_data['user_id_db'])
+                    reply_keyboard = [[elem.brend] for elem in sorted(db_sess.query(Brends).all(),
+                                                                      key=lambda x: -(x.price)) if
+                                      get_amount_brend(elem, deliver) > 0]
                     reply_keyboard.append(['Назад'])
                     context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Продать 1'
                     update.message.reply_text('Выберите линейку',
@@ -825,15 +835,20 @@ def handler(update, context):
                     db_sess = db_session.create_session()
                     deliver = db_sess.query(Deliverymen).get(context.user_data['user_id_db'])
                     text_amount = f'Жидкость в наличии у {deliver.name}:\n'
-                    for elem in db_sess.query(Brends).all():
-                        text_amount += f'\n{elem.brend}\n'
-                        for el in db_sess.query(Goods).filter(Goods.brend == elem).all():
-                            deliv_good = db_sess.query(Delivery_goods).filter(
-                                Delivery_goods.good == el,
-                                Delivery_goods.deliveryman == deliver).first()
-                            if deliv_good.amount > 0:
-                                text_amount += f'{el.title} {deliv_good.amount}\n'
-                    update.message.reply_text(text_amount)
+                    for elem in sorted(db_sess.query(Brends).all(), key=lambda x: -(x.price)):
+                        if get_amount_brend(elem, deliver) > 0:
+                            text_amount += f'\n{elem.brend} {elem.price} рублей\n'
+                            for el in db_sess.query(Goods).filter(Goods.brend == elem).all():
+                                deliv_good = db_sess.query(Delivery_goods).filter(
+                                    Delivery_goods.good == el,
+                                    Delivery_goods.deliveryman == deliver).first()
+                                if deliv_good.amount > 0:
+                                    text_amount += f'{el.title} {deliv_good.amount}\n'
+                    if len(text_amount) > 4000:
+                        for i in range(len(text_amount) // 4000 + 1):
+                            update.message.reply_text(text_amount[i * 4000: (i + 1) * 4000])
+                    else:
+                        update.message.reply_text(text_amount)
                     return start_menu_handler(update, context)
                 elif update.message.text == 'Отправить на проверку':
                     send_on_check = db_session.create_session().query(
@@ -981,7 +996,7 @@ def handler(update, context):
             if context.user_data['locality'][len(context.user_data['locality'])] == 'Старт':
                 if update.message.text == 'Наличие':
                     context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Наличие 1'
-                    reply_keyboard = [[elem] for elem in deliverymen.keys()]
+                    reply_keyboard = [[elem + f' {delyverymen_id[elem]}'] for elem in deliverymen.keys()]
                     reply_keyboard.append(['Отмена'])
                     update.message.reply_text('Выберите доставщика',
                                               reply_markup=ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True,
@@ -995,18 +1010,17 @@ def handler(update, context):
                 db_sess = db_session.create_session()
                 if update.message.text == 'Отмена':
                     return start_menu_handler(update, context)
-                elif (update.message.text,) in db_sess.query(Deliverymen.name).all():
+                elif (update.message.text.split(' ')[0],) in db_sess.query(Deliverymen.name).all():
                     deliver = db_sess.query(Deliverymen).filter(
-                        Deliverymen.name == update.message.text).first()
+                        Deliverymen.name == update.message.text.split(' ')[0]).first()
                     context.user_data['user'] = deliver.id
                     context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Наличие 2'
                     reply_keyboard = [
-                        [f'{elem.brend} - {elem.price} руб ' + str(sum(map(lambda kort: kort[0], db_sess.query(
-                            Delivery_goods.amount).filter(
-                            Delivery_goods.good_id.in_(
-                                ele.id for ele in db_sess.query(Goods).filter(Goods.brend == elem).all()),
-                            Delivery_goods.deliveryman == deliver
-                        ).all()))) + ' шт'] for elem in sorted(db_sess.query(Brends).all(), key=lambda x: -(x.price))]
+                        [f'{elem.brend} - {elem.price} руб ' + str(
+                            get_amount_brend(elem,
+                                             deliver)
+                        ) + ' шт'] for elem in sorted(db_sess.query(Brends).all(),
+                                                      key=lambda x: -(x.price)) if get_amount_brend(elem, deliver) > 0]
                     reply_keyboard.append(['Отмена'])
                     update.message.reply_text('Выберите линейку',
                                               reply_markup=ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True,
@@ -1028,7 +1042,8 @@ def handler(update, context):
                         deliv_good = db_sess.query(Delivery_goods).filter(
                             Delivery_goods.good == el,
                             Delivery_goods.deliveryman == deliver).first()
-                        text_amount += f'{el.title} {deliv_good.amount}\n'
+                        if deliv_good.amount > 0:
+                            text_amount += f'{el.title} {deliv_good.amount}\n'
                     update.message.reply_text(text_amount)
                     return start_menu_handler(update, context)
                 else:
@@ -1088,6 +1103,16 @@ def sell_good(delivery_id, deliveryman_id, brend_id, discount_number):
                           total=brend_delivery_good.price - brend_delivery_good.salary - discount))
         db_sess.commit()
         return True
+
+
+def get_amount_brend(elem, deliver):
+    db_sess = db_session.create_session()
+    return sum(map(lambda kort: kort[0], db_sess.query(
+        Delivery_goods.amount).filter(
+        Delivery_goods.good_id.in_(
+            ele.id for ele in db_sess.query(Goods).filter(Goods.brend == elem).all()),
+        Delivery_goods.deliveryman == deliver
+    ).all()))
 
 
 def get_amount_2(db_sess, elem, id):
