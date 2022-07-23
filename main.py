@@ -11,6 +11,7 @@ from data.brends import Brends
 from data.delivery_goods import Delivery_goods
 from data.deliverymen import Deliverymen
 from data.goods import Goods
+from data.purchase import Purchase
 from data.sales import Sales
 from settings import add_deliverymen
 from settings import admin, admin_2
@@ -32,7 +33,8 @@ def start(update, context):
                                       reply_markup=ReplyKeyboardMarkup([['Наличие', 'Изменить количество'],
                                                                         ['Добавить линейку', 'Изменить линейку'],
                                                                         ['Проверка', 'Статистика'],
-                                                                        ['Получить форму', 'Выслать форму']],
+                                                                        ['Получить форму', 'Выслать форму'],
+                                                                        ['Новый закуп']],
                                                                        resize_keyboard=True,
                                                                        one_time_keyboard=True))
         elif update.message.chat.id in deliverymen.values():
@@ -66,7 +68,8 @@ def error_handler(update, context):
                                       reply_markup=ReplyKeyboardMarkup([['Наличие', 'Изменить количество'],
                                                                         ['Добавить линейку', 'Изменить линейку'],
                                                                         ['Проверка', 'Статистика'],
-                                                                        ['Получить форму', 'Выслать форму']],
+                                                                        ['Получить форму', 'Выслать форму'],
+                                                                        ['Новый закуп']],
                                                                        resize_keyboard=True,
                                                                        one_time_keyboard=True))
         elif update.message.chat.id in deliverymen.values():
@@ -98,7 +101,8 @@ def start_menu_handler(update, context):
                                       reply_markup=ReplyKeyboardMarkup([['Наличие', 'Изменить количество'],
                                                                         ['Добавить линейку', 'Изменить линейку'],
                                                                         ['Проверка', 'Статистика'],
-                                                                        ['Получить форму', 'Выслать форму']],
+                                                                        ['Получить форму', 'Выслать форму'],
+                                                                        ['Новый закуп']],
                                                                        resize_keyboard=True,
                                                                        one_time_keyboard=True))
         elif update.message.chat.id in deliverymen.values():
@@ -202,6 +206,12 @@ def handler(update, context):
                     return start_menu_handler(update, context)
                 elif update.message.text == 'Выслать форму':
                     context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Выслать форму 2'
+                    update.message.reply_text('Пришлите файл',
+                                              reply_markup=ReplyKeyboardMarkup([['Отмена']],
+                                                                               resize_keyboard=True,
+                                                                               one_time_keyboard=True))
+                elif update.message.text == 'Новый закуп':
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Новый закуп 2'
                     update.message.reply_text('Пришлите файл',
                                               reply_markup=ReplyKeyboardMarkup([['Отмена']],
                                                                                resize_keyboard=True,
@@ -548,6 +558,13 @@ def handler(update, context):
                                                                             ['delivery_good_id']).first()
                         good_deliver.amount -= int(update.message.text)
                         db_sess.add(good_deliver)
+                        brend_purch = db_sess.query(Purchase
+                                                    ).filter(Purchase.amount > 0,
+                                                             Purchase.brend_id == context.user_data['add_amount'
+                                                             ]['brend_id'
+                                                             ]).first()
+                        brend_purch.amount -= int(update.message.text)
+                        db_sess.add(brend_purch)
                         db_sess.commit()
                         context.user_data['locality'][len(context.user_data['locality']) + 1] = \
                             'Согласие на возврат к вкусам'
@@ -572,6 +589,13 @@ def handler(update, context):
                                                                             ['delivery_good_id']).first()
                         good_deliver.amount += int(update.message.text)
                         db_sess.add(good_deliver)
+                        brend_purch = db_sess.query(Purchase
+                                                    ).filter(Purchase.amount > 0,
+                                                             Purchase.brend_id == context.user_data['add_amount'
+                                                             ]['brend_id'
+                                                             ]).all()[-1]
+                        brend_purch.amount += int(update.message.text)
+                        db_sess.add(brend_purch)
                         db_sess.commit()
                         context.user_data['locality'][len(context.user_data['locality']) + 1] = \
                             'Согласие на возврат к вкусам'
@@ -697,6 +721,7 @@ def handler(update, context):
                         salary = 0
                         total = 0
                         amount = 0
+                        income = 0
                         for elem in db_sess.query(Sales).filter(
                                 Sales.deliveryman_id == context.user_data['deliveryman'],
                                 extract('month', Sales.date) == datetime.datetime.now().date().month,
@@ -705,18 +730,22 @@ def handler(update, context):
                             salary += elem.sales_salary
                             total += elem.total
                             amount += len(elem.deliverygood_ids.split('&'))
+                            if elem.income is not None:
+                                income += elem.income
                         update.message.reply_text(f"Статистика "
                                                   f"{db_sess.query(Deliverymen).get(context.user_data['deliveryman']).name}\n"
                                                   f"Денег {calculate_money(db_sess, context.user_data['deliveryman'])}\n"
                                                   f"Зарплата: {salary}\n"
                                                   f"Скинуто: {total}\n"
                                                   f"Продано штук: {amount}\n"
+                                                  f"Прибыль: {income}\n"
                                                   f"Средняя цена позиции: {(total + salary) / amount if amount > 0 else 0}\n")
                         return start_menu_handler(update, context)
                     else:
                         salary = 0
                         total = 0
                         amount = 0
+                        income = 0
                         for elem in db_sess.query(Sales).filter(
                                 extract('month', Sales.date) == datetime.datetime.now().date().month,
                                 extract('year', Sales.date) == datetime.datetime.now().date().year,
@@ -724,11 +753,14 @@ def handler(update, context):
                             salary += elem.sales_salary
                             total += elem.total
                             amount += len(elem.deliverygood_ids.split('&'))
+                            if elem.income is not None:
+                                income += elem.income
                         update.message.reply_text(f"Статистика общее\n"
                                                   f"Денег {calculate_money(db_sess, None)}\n"
                                                   f"Зарплата: {salary}\n"
                                                   f"Скинуто: {total}\n"
                                                   f"Продано штук: {amount}\n"
+                                                  f"Прибыль: {income}\n"
                                                   f"Средняя цена позиции: {(total + salary) / amount if amount > 0 else 0}\n")
                         return start_menu_handler(update, context)
                 elif update.message.text == 'Число месяца':
@@ -775,12 +807,14 @@ def handler(update, context):
                                                   f"Зарплата: {sales_good.sales_salary}\n"
                                                   f"Скинуто: {sales_good.total}\n"
                                                   f"Продано штук: {kolvo}\n"
+                                                  f"Прибыль: {sales_good.income if sales_good.income is not None else 0}\n"
                                                   f"Средняя цена позиции: {sredn}")
                         return start_menu_handler(update, context)
                     else:
                         salary = 0
                         total = 0
                         amount = 0
+                        income = 0
                         for elem in db_sess.query(Sales).filter(
                                 Sales.date == datetime.date(int(update.message.text.split('-')[0]),
                                                             int(update.message.text.split('-')[1]),
@@ -788,10 +822,13 @@ def handler(update, context):
                             salary += elem.sales_salary
                             total += elem.total
                             amount += len(elem.deliverygood_ids.split("&"))
+                            if elem.income is not None:
+                                income += elem.income
                         update.message.reply_text(f'Статитстика общее\n'
                                                   f'Зарплата: {salary}\n'
                                                   f'Скинуто: {total}\n'
                                                   f'Продано штук: {amount}\n'
+                                                  f"Прибыль: {income}\n"
                                                   f'Средняя цена позиции: {(salary + total) / amount if amount > 0 else 0}\n')
                         return start_menu_handler(update, context)
                 else:
@@ -835,6 +872,61 @@ def handler(update, context):
                                 good_deliver.amount += int(cell.value)
                                 db_sess.add(good_deliver)
                                 db_sess.commit()
+                    schetchik += 1
+                return start_menu_handler(update, context)
+            #
+            # обработка xlsx нового закупа
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Новый закуп 2':
+                if update.message.text == 'Отмена':
+                    return start_menu_handler(update, context)
+                with open("goods.xlsx", 'wb') as f:
+                    context.bot.get_file(update.message.document).download(out=f)
+                f.close
+                wb = load_workbook('goods.xlsx')
+                ws = wb.active
+                xlsx_deliverymen = {}
+                for elem in ws[1]:
+                    if elem.value is not None:
+                        xlsx_deliverymen[elem.column] = elem.value
+                spis = []
+                dict_price = {}
+                for elem in ws['A']:
+                    if elem.value is not None and 'рублей' not in elem.value:
+                        spis.append(elem)
+                    elif elem.value is not None and 'рублей' in elem.value:
+                        dict_price[spis[-1].value] = elem.value
+                schetchik = 1
+                db_sess = db_session.create_session()
+                for elem in spis:
+                    amount_brend_zavoz = 0
+                    for row in ws.iter_rows(min_row=elem.row + 1,
+                                            max_row=spis[schetchik].row - 1 if schetchik < len(spis) else None,
+                                            min_col=elem.column + 1,
+                                            max_col=elem.column + 1 + len(xlsx_deliverymen)):
+                        taste = row[0]
+                        for cell in row[1:]:
+                            if cell.value is not None:
+                                good_deliver = db_sess.query(Delivery_goods).filter(
+                                    Delivery_goods.good == db_sess.query(
+                                        Goods
+                                    ).filter(
+                                        Goods.title == taste.value,
+                                        Goods.brend == db_sess.query(Brends).filter(
+                                            Brends.brend == elem.value).first()
+                                    ).first(),
+                                    Delivery_goods.deliveryman == db_sess.query(Deliverymen).filter(
+                                        Deliverymen.name == xlsx_deliverymen[cell.column]).first()).first()
+                                amount_brend_zavoz += int(cell.value)
+                                good_deliver.amount += int(cell.value)
+                                db_sess.add(good_deliver)
+                    if amount_brend_zavoz > 0:
+                        purch = Purchase(date=datetime.datetime.now().date(),
+                                         brend=db_sess.query(Brends).filter(Brends.brend == elem.value).first(),
+                                         amount_purchase=amount_brend_zavoz,
+                                         amount=amount_brend_zavoz,
+                                         price=float(dict_price[elem.value].split(' ')[0]))
+                        db_sess.add(purch)
+                    db_sess.commit()
                     schetchik += 1
                 return start_menu_handler(update, context)
         #
@@ -983,10 +1075,17 @@ def handler(update, context):
                         ).first().id,
                         Delivery_goods.deliveryman_id ==
                         context.user_data['user_id_db']).first()
+                    brend_purch = db_sess.query(Purchase
+                                                ).filter(Purchase.amount > 0,
+                                                         Purchase.brend_id == context.user_data['sell_good'
+                                                         ]['brend_id'
+                                                         ]).first()
                     if sell_good(good_deliver.id, context.user_data['user_id_db'],
-                                 context.user_data['sell_good']['brend_id'], update.message.text):
+                                 context.user_data['sell_good']['brend_id'], update.message.text, brend_purch):
                         good_deliver.amount -= 1
                         db_sess.add(good_deliver)
+                        brend_purch.amount -= 1
+                        db_sess.add(brend_purch)
                         db_sess.commit()
                         update.message.reply_text('Успешно!')
                         return start_menu_handler(update, context)
@@ -1108,7 +1207,7 @@ def delete_brand(id):
     return True
 
 
-def sell_good(delivery_id, deliveryman_id, brend_id, discount_number):
+def sell_good(delivery_id, deliveryman_id, brend_id, discount_number, brend_purch):
     db_sess = db_session.create_session()
     sold = db_sess.query(Sales).filter(Sales.date == datetime.datetime.now().date(),
                                        Sales.deliveryman_id == deliveryman_id).first()
@@ -1126,6 +1225,7 @@ def sell_good(delivery_id, deliveryman_id, brend_id, discount_number):
         sold.deliverygood_ids += f'&{delivery_id}.{discount}'
         sold.total += brend_delivery_good.price - brend_delivery_good.salary - discount
         sold.sales_salary += brend_delivery_good.salary
+        sold.income += brend_delivery_good.price - brend_delivery_good.salary - discount - brend_purch.price
         db_sess.add(sold)
         db_sess.commit()
         return True
@@ -1134,7 +1234,8 @@ def sell_good(delivery_id, deliveryman_id, brend_id, discount_number):
                           deliveryman_id=deliveryman_id,
                           deliverygood_ids=f'{delivery_id}.{discount}',
                           sales_salary=brend_delivery_good.salary,
-                          total=brend_delivery_good.price - brend_delivery_good.salary - discount))
+                          total=brend_delivery_good.price - brend_delivery_good.salary - discount,
+                          income=brend_delivery_good.price - brend_delivery_good.salary - discount - brend_purch.price))
         db_sess.commit()
         return True
 

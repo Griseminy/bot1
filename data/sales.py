@@ -18,3 +18,4 @@ class Sales(SqlAlchemyBase):
     total = sqlalchemy.Column(sqlalchemy.Float)
     on_check = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
     is_send = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
+    income = sqlalchemy.Column(sqlalchemy.Float)

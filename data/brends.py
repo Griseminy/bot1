@@ -15,3 +15,4 @@ class Brends(SqlAlchemyBase):
     discount_1 = sqlalchemy.Column(sqlalchemy.Integer)
     discount_2 = sqlalchemy.Column(sqlalchemy.Integer)
     salary = sqlalchemy.Column(sqlalchemy.Integer)
+    purchase = orm.relation("Purchase", back_populates='brend')
