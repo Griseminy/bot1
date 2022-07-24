@@ -1,5 +1,6 @@
 import datetime
 import itertools
+import time
 
 from openpyxl import Workbook, load_workbook
 from sqlalchemy.sql import extract
@@ -1344,7 +1345,10 @@ def main():
 
 
 if __name__ == '__main__':
-    # help(MessageHandler)
     db_session.global_init(f"db/goods.db")
     add_deliverymen(deliverymen)
-    main()
+    while True:
+        try:
+            main()
+        except Exception as e:
+            time.sleep(3)
