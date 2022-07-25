@@ -22,7 +22,7 @@ from settings import sberbank, alfabank
 from settings import text_chat
 from settings import text_start
 
-TOKEN = '5301614535:AAGAjCg3CopbFtvzUQVGLAkE9lOpNsbnX-Q'
+TOKEN = '5478798012:AAHOWISNLFiv4P4qusEsnoJgJySTADiSnak'
 
 
 def start(update, context):
@@ -1019,7 +1019,8 @@ def handler(update, context):
                         brend = db_session.create_session().query(Brends
                                                                   ).filter(Brends.brend == update.message.text).first()
                         update.message.reply_photo(photo=open(brend.photo_link, 'rb'),
-                                                   caption=open(brend.txt_file, 'r').read())
+                                                   caption=f"{brend.brend} {brend.price}\n\n"
+                                                           f"{open(brend.txt_file, 'r').read()}")
                         return start_menu_handler(update, context)
                     except:
                         error_handler(update, context)
@@ -1224,7 +1225,8 @@ def handler(update, context):
                         brend = db_session.create_session().query(Brends
                                                                   ).filter(Brends.brend == update.message.text).first()
                         update.message.reply_photo(photo=open(brend.photo_link, 'rb'),
-                                                   caption=open(brend.txt_file, 'r').read())
+                                                   caption=f"{brend.brend} {brend.price}\n\n"
+                                                           f"{open(brend.txt_file, 'r').read()}")
                         return start_menu_handler(update, context)
                     except:
                         error_handler(update, context)
@@ -1302,7 +1304,8 @@ def handler(update, context):
                         brend = db_session.create_session().query(Brends
                                                                   ).filter(Brends.brend == update.message.text).first()
                         update.message.reply_photo(photo=open(brend.photo_link, 'rb'),
-                                                   caption=open(brend.txt_file, 'r').read())
+                                                   caption=f"{brend.brend} {brend.price}\n\n"
+                                                           f"{open(brend.txt_file, 'r').read()}")
                         return start_menu_handler(update, context)
                     except:
                         error_handler(update, context)
