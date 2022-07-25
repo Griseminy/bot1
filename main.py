@@ -22,7 +22,7 @@ from settings import sberbank, alfabank
 from settings import text_chat
 from settings import text_start
 
-TOKEN = '5301614535:AAGAjCg3CopbFtvzUQVGLAkE9lOpNsbnX-Q'
+TOKEN = '5478798012:AAHOWISNLFiv4P4qusEsnoJgJySTADiSnak'
 
 
 def start(update, context):
@@ -35,7 +35,7 @@ def start(update, context):
                                                                         ['Добавить линейку', 'Изменить линейку'],
                                                                         ['Проверка', 'Статистика'],
                                                                         ['Получить форму', 'Выслать форму'],
-                                                                        ['Новый закуп']],
+                                                                        ['Новый закуп', 'Добавить описание']],
                                                                        resize_keyboard=True,
                                                                        one_time_keyboard=True))
         elif update.message.chat.id in deliverymen.values():
@@ -70,7 +70,7 @@ def error_handler(update, context):
                                                                         ['Добавить линейку', 'Изменить линейку'],
                                                                         ['Проверка', 'Статистика'],
                                                                         ['Получить форму', 'Выслать форму'],
-                                                                        ['Новый закуп']],
+                                                                        ['Новый закуп', 'Добавить описание']],
                                                                        resize_keyboard=True,
                                                                        one_time_keyboard=True))
         elif update.message.chat.id in deliverymen.values():
@@ -103,7 +103,7 @@ def start_menu_handler(update, context):
                                                                         ['Добавить линейку', 'Изменить линейку'],
                                                                         ['Проверка', 'Статистика'],
                                                                         ['Получить форму', 'Выслать форму'],
-                                                                        ['Новый закуп']],
+                                                                        ['Новый закуп', 'Добавить описание']],
                                                                        resize_keyboard=True,
                                                                        one_time_keyboard=True))
         elif update.message.chat.id in deliverymen.values():
@@ -127,7 +127,7 @@ def start_menu_handler(update, context):
 
 
 def handler(update, context):
-    try:
+    # try:
         if update.message.chat.id == admin or update.message.chat.id == admin_2:
             # Главное меню
             if context.user_data['locality'][len(context.user_data['locality'])] == 'Старт':
@@ -214,6 +214,12 @@ def handler(update, context):
                 elif update.message.text == 'Новый закуп':
                     context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Новый закуп 2'
                     update.message.reply_text('Пришлите файл',
+                                              reply_markup=ReplyKeyboardMarkup([['Отмена']],
+                                                                               resize_keyboard=True,
+                                                                               one_time_keyboard=True))
+                elif update.message.text == 'Добавить описание':
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Добавить описание 2'
+                    update.message.reply_text('Пришлите фото с текстом',
                                               reply_markup=ReplyKeyboardMarkup([['Отмена']],
                                                                                resize_keyboard=True,
                                                                                one_time_keyboard=True))
@@ -803,7 +809,7 @@ def handler(update, context):
                         ).first()
                         kolvo = len(sales_good.deliverygood_ids.split('&'))
                         sredn = (sales_good.total + sales_good.sales_salary) / kolvo if kolvo > 0 else 0
-                        update.message.reply_text(f"Статитстика"
+                        update.message.reply_text(f"Статитстика "
                                                   f"{db_sess.query(Deliverymen).get(context.user_data['deliveryman']).name}\n"
                                                   f"Зарплата: {sales_good.sales_salary}\n"
                                                   f"Скинуто: {sales_good.total}\n"
@@ -834,6 +840,8 @@ def handler(update, context):
                         return start_menu_handler(update, context)
                 else:
                     return error_handler(update, context)
+            #
+            # Обработка xlsx редактирования наличия
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Выслать форму 2':
                 if update.message.text == 'Отмена':
                     return start_menu_handler(update, context)
@@ -853,6 +861,7 @@ def handler(update, context):
                 schetchik = 1
                 db_sess = db_session.create_session()
                 for elem in spis:
+                    amount_brend_zavoz = 0
                     for row in ws.iter_rows(min_row=elem.row + 1,
                                             max_row=spis[schetchik].row - 1 if schetchik < len(spis) else None,
                                             min_col=elem.column + 1,
@@ -870,9 +879,29 @@ def handler(update, context):
                                     ).first(),
                                     Delivery_goods.deliveryman == db_sess.query(Deliverymen).filter(
                                         Deliverymen.name == xlsx_deliverymen[cell.column]).first()).first()
+                                amount_brend_zavoz += int(cell.value)
                                 good_deliver.amount += int(cell.value)
                                 db_sess.add(good_deliver)
-                                db_sess.commit()
+                    if amount_brend_zavoz > 0:
+                        purch = db_sess.query(Purchase).filter(
+                            Purchase.brend == db_sess.query(Brends).filter(Brends.brend == elem.value).first(),
+                            Purchase.amount > 0).all()[-1]
+                        purch.amount += amount_brend_zavoz
+                        db_sess.add(purch)
+                    elif amount_brend_zavoz < 0:
+                        while amount_brend_zavoz != 0:
+                            purch = db_sess.query(Purchase).filter(
+                                Purchase.brend == db_sess.query(Brends).filter(Brends.brend == elem.value).first(),
+                                Purchase.amount > 0).first()
+                            if -amount_brend_zavoz > purch.amount:
+                                amount_brend_zavoz += purch.amount
+                                purch.amount = 0
+                            else:
+                                purch.amount += amount_brend_zavoz
+                                amount_brend_zavoz = 0
+                            db_sess.add(purch.amount)
+                            db_sess.commit()
+                    db_sess.commit()
                     schetchik += 1
                 return start_menu_handler(update, context)
             #
@@ -1171,8 +1200,8 @@ def handler(update, context):
                 else:
                     update.message.reply_text('Ничего не найдено')
                     return start_menu_handler(update, context)
-    except Exception as e:
-        return error_handler(update, context)
+    # except Exception as e:
+    #     return error_handler(update, context)
 
 
 def calculate_money(db_sess, id):

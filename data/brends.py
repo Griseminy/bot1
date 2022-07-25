@@ -16,3 +16,5 @@ class Brends(SqlAlchemyBase):
     discount_2 = sqlalchemy.Column(sqlalchemy.Integer)
     salary = sqlalchemy.Column(sqlalchemy.Integer)
     purchase = orm.relation("Purchase", back_populates='brend')
+    txt_file = sqlalchemy.Column(sqlalchemy.String)
+    photo_link = sqlalchemy.Column(sqlalchemy.String)
