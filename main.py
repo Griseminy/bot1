@@ -35,7 +35,8 @@ def start(update, context):
                                                                         ['Добавить линейку', 'Изменить линейку'],
                                                                         ['Проверка', 'Статистика'],
                                                                         ['Получить форму', 'Выслать форму'],
-                                                                        ['Новый закуп', 'Добавить описание']],
+                                                                        ['Новый закуп', 'Добавить описание'],
+                                                                        ['Описание вкусов']],
                                                                        resize_keyboard=True,
                                                                        one_time_keyboard=True))
         elif update.message.chat.id in deliverymen.values():
@@ -46,13 +47,16 @@ def start(update, context):
                                                                                                  'Статистика за месяц'],
                                                                                                 [
                                                                                                     'Отправить на проверку',
-                                                                                                    'Нужно перевести']],
+                                                                                                    'Нужно перевести'],
+                                                                                                ['Описание вкусов']],
                                                                                                resize_keyboard=True,
                                                                                                one_time_keyboard=True))
         else:
             update.message.reply_text(text_start)
             update.message.reply_text('Нажмите кнопки на клавиатуре',
-                                      reply_markup=ReplyKeyboardMarkup([['Наличие'], ['Доставка']],
+                                      reply_markup=ReplyKeyboardMarkup([['Наличие'],
+                                                                        ['Описание вкусов'],
+                                                                        ['Доставка']],
                                                                        resize_keyboard=True,
                                                                        one_time_keyboard=True))
     except:
@@ -70,7 +74,8 @@ def error_handler(update, context):
                                                                         ['Добавить линейку', 'Изменить линейку'],
                                                                         ['Проверка', 'Статистика'],
                                                                         ['Получить форму', 'Выслать форму'],
-                                                                        ['Новый закуп', 'Добавить описание']],
+                                                                        ['Новый закуп', 'Добавить описание'],
+                                                                        ['Описание вкусов']],
                                                                        resize_keyboard=True,
                                                                        one_time_keyboard=True))
         elif update.message.chat.id in deliverymen.values():
@@ -81,12 +86,15 @@ def error_handler(update, context):
                                                                                                  'Статистика за месяц'],
                                                                                                 [
                                                                                                     'Отправить на проверку',
-                                                                                                    'Нужно перевести']],
+                                                                                                    'Нужно перевести'],
+                                                                                                ['Описание вкусов']],
                                                                                                resize_keyboard=True,
                                                                                                one_time_keyboard=True))
         else:
             update.message.reply_text('Нажмите кнопки на клавиатуре',
-                                      reply_markup=ReplyKeyboardMarkup([['Наличие'], ['Доставка']],
+                                      reply_markup=ReplyKeyboardMarkup([['Наличие'],
+                                                                        ['Описание вкусов'],
+                                                                        ['Доставка']],
                                                                        resize_keyboard=True,
                                                                        one_time_keyboard=True))
     except:
@@ -103,7 +111,8 @@ def start_menu_handler(update, context):
                                                                         ['Добавить линейку', 'Изменить линейку'],
                                                                         ['Проверка', 'Статистика'],
                                                                         ['Получить форму', 'Выслать форму'],
-                                                                        ['Новый закуп', 'Добавить описание']],
+                                                                        ['Новый закуп', 'Добавить описание'],
+                                                                        ['Описание вкусов']],
                                                                        resize_keyboard=True,
                                                                        one_time_keyboard=True))
         elif update.message.chat.id in deliverymen.values():
@@ -119,7 +128,9 @@ def start_menu_handler(update, context):
                                                                                          one_time_keyboard=True))
         else:
             update.message.reply_text('Возврат в меню',
-                                      reply_markup=ReplyKeyboardMarkup([['Наличие'], ['Доставка']],
+                                      reply_markup=ReplyKeyboardMarkup([['Наличие'],
+                                                                        ['Описание вкусов'],
+                                                                        ['Доставка']],
                                                                        resize_keyboard=True,
                                                                        one_time_keyboard=True))
     except:
@@ -127,7 +138,7 @@ def start_menu_handler(update, context):
 
 
 def handler(update, context):
-    # try:
+    try:
         if update.message.chat.id == admin or update.message.chat.id == admin_2:
             # Главное меню
             if context.user_data['locality'][len(context.user_data['locality'])] == 'Старт':
@@ -218,9 +229,21 @@ def handler(update, context):
                                                                                resize_keyboard=True,
                                                                                one_time_keyboard=True))
                 elif update.message.text == 'Добавить описание':
+                    reply_keyboard = [[elem.brend] for elem in sorted(db_session.create_session().query(Brends).all(),
+                                                                      key=lambda x: -(x.price))]
+                    reply_keyboard.append(['Назад'])
                     context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Добавить описание 2'
-                    update.message.reply_text('Пришлите фото с текстом',
-                                              reply_markup=ReplyKeyboardMarkup([['Отмена']],
+                    update.message.reply_text('Выберите линейку для добавления описания',
+                                              reply_markup=ReplyKeyboardMarkup(reply_keyboard,
+                                                                               resize_keyboard=True,
+                                                                               one_time_keyboard=True))
+                elif update.message.text == 'Описание вкусов':
+                    reply_keyboard = [[elem.brend] for elem in sorted(db_session.create_session(
+                    ).query(Brends).filter(Brends.photo_link != '').all(), key=lambda x: -(x.price))]
+                    reply_keyboard.append(['Назад'])
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Описание вкусов 2'
+                    update.message.reply_text('Выберите линейку',
+                                              reply_markup=ReplyKeyboardMarkup(reply_keyboard,
                                                                                resize_keyboard=True,
                                                                                one_time_keyboard=True))
                 else:
@@ -959,6 +982,47 @@ def handler(update, context):
                     db_sess.commit()
                     schetchik += 1
                 return start_menu_handler(update, context)
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Добавить описание 2':
+                if update.message.text == 'Назад':
+                    return start_menu_handler(update, context)
+                else:
+                    brend_id = check_brend(update.message.text)
+                    if brend_id:
+                        context.user_data['redactor_brend'] = {0: brend_id}
+                        context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Добавить описание 3'
+                        update.message.reply_text('Отправьте текст с фото',
+                                                  reply_markup=ReplyKeyboardMarkup([['Отмена']],
+                                                                                   resize_keyboard=True,
+                                                                                   one_time_keyboard=True))
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Добавить описание 3':
+                if update.message.text == 'Отмена':
+                    return start_menu_handler(update, context)
+                else:
+                    try:
+                        db_sess = db_session.create_session()
+                        brend = db_sess.query(Brends).get(context.user_data['redactor_brend'][0])
+                        brend.photo_link = update.message.photo[-1].get_file(
+                        ).download(f"photos/{'_'.join(brend.brend.split(' '))}.png")
+                        with open(f"description/{'_'.join(brend.brend.split(' '))}.txt", 'w') as f:
+                            f.write(update.message.caption)
+                        brend.txt_file = f"description/{'_'.join(brend.brend.split(' '))}.txt"
+                        db_sess.add(brend)
+                        db_sess.commit()
+                        return start_menu_handler(update, context)
+                    except:
+                        return error_handler(update, context)
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Описание вкусов 2':
+                if update.message.text == 'Назад':
+                    return start_menu_handler(update, context)
+                else:
+                    try:
+                        brend = db_session.create_session().query(Brends
+                                                                  ).filter(Brends.brend == update.message.text).first()
+                        update.message.reply_photo(photo=open(brend.photo_link, 'rb'),
+                                                   caption=open(brend.txt_file, 'r').read())
+                        return start_menu_handler(update, context)
+                    except:
+                        error_handler(update, context)
         #
         # Меню доставщика
         elif update.message.chat.id in deliverymen.values():
@@ -1054,6 +1118,15 @@ def handler(update, context):
                     else:
                         update.message.reply_text('Всё скинуто')
                     return start_menu_handler(update, context)
+                elif update.message.text == 'Описание вкусов':
+                    reply_keyboard = [[elem.brend] for elem in sorted(db_session.create_session(
+                    ).query(Brends).filter(Brends.photo_link != '').all(), key=lambda x: -(x.price))]
+                    reply_keyboard.append(['Назад'])
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Описание вкусов 2'
+                    update.message.reply_text('Выберите линейку',
+                                              reply_markup=ReplyKeyboardMarkup(reply_keyboard,
+                                                                               resize_keyboard=True,
+                                                                               one_time_keyboard=True))
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Продать 1':
                 brend_id = check_brend(update.message.text)
                 if update.message.text == 'Назад':
@@ -1143,6 +1216,18 @@ def handler(update, context):
                         return start_menu_handler(update, context)
                 else:
                     return start_menu_handler(update, context)
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Описание вкусов 2':
+                if update.message.text == 'Назад':
+                    return start_menu_handler(update, context)
+                else:
+                    try:
+                        brend = db_session.create_session().query(Brends
+                                                                  ).filter(Brends.brend == update.message.text).first()
+                        update.message.reply_photo(photo=open(brend.photo_link, 'rb'),
+                                                   caption=open(brend.txt_file, 'r').read())
+                        return start_menu_handler(update, context)
+                    except:
+                        error_handler(update, context)
         else:
             if context.user_data['locality'][len(context.user_data['locality'])] == 'Старт':
                 if update.message.text == 'Наличие':
@@ -1155,6 +1240,15 @@ def handler(update, context):
                 elif update.message.text == 'Доставка':
                     update.message.reply_text(text_chat)
                     return start_menu_handler(update, context)
+                elif update.message.text == 'Описание вкусов':
+                    reply_keyboard = [[elem.brend] for elem in sorted(db_session.create_session(
+                    ).query(Brends).filter(Brends.photo_link != '').all(), key=lambda x: -(x.price))]
+                    reply_keyboard.append(['Назад'])
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Описание вкусов 2'
+                    update.message.reply_text('Выберите линейку',
+                                              reply_markup=ReplyKeyboardMarkup(reply_keyboard,
+                                                                               resize_keyboard=True,
+                                                                               one_time_keyboard=True))
                 else:
                     return error_handler(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Наличие 1':
@@ -1200,8 +1294,20 @@ def handler(update, context):
                 else:
                     update.message.reply_text('Ничего не найдено')
                     return start_menu_handler(update, context)
-    # except Exception as e:
-    #     return error_handler(update, context)
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Описание вкусов 2':
+                if update.message.text == 'Назад':
+                    return start_menu_handler(update, context)
+                else:
+                    try:
+                        brend = db_session.create_session().query(Brends
+                                                                  ).filter(Brends.brend == update.message.text).first()
+                        update.message.reply_photo(photo=open(brend.photo_link, 'rb'),
+                                                   caption=open(brend.txt_file, 'r').read())
+                        return start_menu_handler(update, context)
+                    except:
+                        error_handler(update, context)
+    except Exception as e:
+        return error_handler(update, context)
 
 
 def calculate_money(db_sess, id):
@@ -1368,7 +1474,7 @@ def main():
     updater = Updater(TOKEN)
     dp = updater.dispatcher
     dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command | Filters.document, handler))
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command | Filters.document | Filters.photo, handler))
     updater.start_polling()
     updater.idle()
 
