@@ -1019,7 +1019,7 @@ def handler(update, context):
                         brend = db_session.create_session().query(Brends
                                                                   ).filter(Brends.brend == update.message.text).first()
                         update.message.reply_photo(photo=open(brend.photo_link, 'rb'),
-                                                   caption=f"{brend.brend} {brend.price}\n\n"
+                                                   caption=f"{brend.brend} {brend.price} рублей\n\n"
                                                            f"{open(brend.txt_file, 'r').read()}")
                         return start_menu_handler(update, context)
                     except:
@@ -1225,7 +1225,7 @@ def handler(update, context):
                         brend = db_session.create_session().query(Brends
                                                                   ).filter(Brends.brend == update.message.text).first()
                         update.message.reply_photo(photo=open(brend.photo_link, 'rb'),
-                                                   caption=f"{brend.brend} {brend.price}\n\n"
+                                                   caption=f"{brend.brend} {brend.price} рублей\n\n"
                                                            f"{open(brend.txt_file, 'r').read()}")
                         return start_menu_handler(update, context)
                     except:
@@ -1304,7 +1304,7 @@ def handler(update, context):
                         brend = db_session.create_session().query(Brends
                                                                   ).filter(Brends.brend == update.message.text).first()
                         update.message.reply_photo(photo=open(brend.photo_link, 'rb'),
-                                                   caption=f"{brend.brend} {brend.price}\n\n"
+                                                   caption=f"{brend.brend} {brend.price} рублей\n\n"
                                                            f"{open(brend.txt_file, 'r').read()}")
                         return start_menu_handler(update, context)
                     except:
