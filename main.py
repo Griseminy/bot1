@@ -140,7 +140,7 @@ def start_menu_handler(update, context):
 def handler(update, context):
     try:
         if update.message.chat.id == admin or update.message.chat.id == admin_2:
-            # Главное меню
+            # Главное меню__
             if context.user_data['locality'][len(context.user_data['locality'])] == 'Старт':
                 if update.message.text == 'Добавить линейку':
                     context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Добавить линейку'
