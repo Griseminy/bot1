@@ -123,7 +123,8 @@ def start_menu_handler(update, context):
                                                                                            'Статистика за месяц'],
                                                                                           [
                                                                                               'Отправить на проверку',
-                                                                                              'Нужно перевести']],
+                                                                                              'Нужно перевести'],
+                                                                                          ['Описание вкусов']],
                                                                                          resize_keyboard=True,
                                                                                          one_time_keyboard=True))
         else:
