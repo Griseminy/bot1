@@ -22,7 +22,7 @@ from settings import sberbank, alfabank
 from settings import text_chat
 from settings import text_start
 
-TOKEN = '5301614535:AAGAjCg3CopbFtvzUQVGLAkE9lOpNsbnX-Q'
+TOKEN = '5478798012:AAHOWISNLFiv4P4qusEsnoJgJySTADiSnak'
 
 
 def start(update, context):
@@ -1003,10 +1003,10 @@ def handler(update, context):
                         db_sess = db_session.create_session()
                         brend = db_sess.query(Brends).get(context.user_data['redactor_brend'][0])
                         brend.photo_link = update.message.photo[-1].get_file(
-                        ).download(f"photos/{'_'.join(brend.brend.split(' '))}.png")
-                        with open(f"description/{'_'.join(brend.brend.split(' '))}.txt", 'w') as f:
+                        ).download(f"photos/{brend.id}.png")
+                        with open(f"description/{brend.id}.txt", 'w') as f:
                             f.write(update.message.caption)
-                        brend.txt_file = f"description/{'_'.join(brend.brend.split(' '))}.txt"
+                        brend.txt_file = f"description/{brend.id}.txt"
                         db_sess.add(brend)
                         db_sess.commit()
                         return start_menu_handler(update, context)
