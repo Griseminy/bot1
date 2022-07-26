@@ -1306,7 +1306,8 @@ def handler(update, context):
                                                                   ).filter(Brends.brend == update.message.text).first()
                         update.message.reply_photo(photo=open(brend.photo_link, 'rb'),
                                                    caption=f"{brend.brend} {brend.price} рублей\n\n"
-                                                           f"{open(brend.txt_file, 'r').read()}")
+                                                           f"{open(brend.txt_file, 'r').read()}\n\n"
+                                                           f"Наш канал t.me/GhostVapeKgn")
                         return start_menu_handler(update, context)
                     except:
                         error_handler(update, context)
