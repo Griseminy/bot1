@@ -1478,8 +1478,9 @@ def add_goods(title, list_goods):
 def main():
     updater = Updater(TOKEN)
     dp = updater.dispatcher
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command | Filters.document | Filters.photo, handler))
+    dp.add_handler(CommandHandler("start", start, run_async=True))
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command | Filters.document | Filters.photo,
+                                  handler, run_async=True))
     updater.start_polling()
     updater.idle()
 
