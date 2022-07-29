@@ -3,8 +3,6 @@ Description=Telegram Bot
 After=network.target
 
 [Service]
-Restart=on-failure
-RestartSec=5s
 User=haz
 Group=haz
 
