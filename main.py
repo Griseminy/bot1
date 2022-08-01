@@ -1691,39 +1691,39 @@ def forward_query_handler(update, context):
             if query.message.photo != []:
                 context.bot.send_photo(chat_id=groups[update.effective_chat.id],
                                        photo=update.callback_query.message.photo[-1].get_file().file_id,
-                                       caption=update.callback_query.message.caption.split('\n\n')[0] +
+                                       caption='\n\n'.join(update.callback_query.message.caption.split('\n\n')[0:-1]) +
                                                '\n\n' +
                                                ' '.join(update.callback_query.message.caption.split(
-                                                   '\n\n')[1].split(' ')[0:2]) + " [" +
+                                                   '\n\n')[-1].split(' ')[0:2]) + " [" +
                                                update.callback_query.message.caption.split(
-                                                   '\n\n')[1].split(' ')[2] + "](tg://user?id=" +
+                                                   '\n\n')[-1].split(' ')[2] + "](tg://user?id=" +
                                                update.callback_query.message.caption.split(
-                                                   '\n\n')[1].split(' ')[3] + ")", parse_mode="Markdown",
+                                                   '\n\n')[-1].split(' ')[3] + ")", parse_mode="Markdown",
                                        reply_markup=reply_keyboard)
                 context.bot.send_message(
-                    chat_id=int(update.callback_query.message.caption.split('\n\n')[1].split(' ')[3]),
+                    chat_id=int(update.callback_query.message.caption.split('\n\n')[-1].split(' ')[3]),
                     text=f'Ваше объявление опубликовано в {groups[update.effective_chat.id]}')
             else:
                 context.bot.send_message(chat_id=groups[update.effective_chat.id],
-                                         text=update.callback_query.message.text.split('\n\n')[0] +
+                                         text='\n\n'.join(update.callback_query.message.text.split('\n\n')[0:-1]) +
                                               '\n\n' +
                                               ' '.join(update.callback_query.message.text.split(
-                                                  '\n\n')[1].split(' ')[0:2]) + " [" +
+                                                  '\n\n')[-1].split(' ')[0:2]) + " [" +
                                               update.callback_query.message.text.split(
-                                                  '\n\n')[1].split(' ')[2] + "](tg://user?id=" +
+                                                  '\n\n')[-1].split(' ')[2] + "](tg://user?id=" +
                                               update.callback_query.message.text.split(
-                                                  '\n\n')[1].split(' ')[3] + ")",
+                                                  '\n\n')[-1].split(' ')[3] + ")",
                                          reply_markup=reply_keyboard, parse_mode="Markdown")
-                context.bot.send_message(chat_id=int(update.callback_query.message.text.split('\n\n')[1].split(' ')[3]),
+                context.bot.send_message(chat_id=int(update.callback_query.message.text.split('\n\n')[-1].split(' ')[3]),
                                          text=f'Ваше объявление опубликовано в {groups[update.effective_chat.id]}')
         else:
             if update.callback_query.message.caption != None:
                 context.bot.send_message(
-                    chat_id=int(update.callback_query.message.caption.split('\n\n')[1].split(' ')[3]),
+                    chat_id=int(update.callback_query.message.caption.split('\n\n')[-1].split(' ')[3]),
                     text=f'Ваше объявление отклонено в {groups[update.effective_chat.id]}')
             else:
                 context.bot.send_message(
-                    chat_id=int(update.callback_query.message.text.split('\n\n')[1].split(' ')[3]),
+                    chat_id=int(update.callback_query.message.text.split('\n\n')[-1].split(' ')[3]),
                     text=f'Ваше объявление отклонено в {groups[update.effective_chat.id]}')
         update.callback_query.message.delete()
 
