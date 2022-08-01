@@ -634,8 +634,7 @@ def handler(update, context):
                         good_deliver.amount += int(update.message.text)
                         db_sess.add(good_deliver)
                         brend_purch = db_sess.query(Purchase
-                                                    ).filter(Purchase.amount > 0,
-                                                             Purchase.brend_id == context.user_data['add_amount'
+                                                    ).filter(Purchase.brend_id == context.user_data['add_amount'
                                                              ]['brend_id'
                                                              ]).all()[-1]
                         brend_purch.amount += int(update.message.text)
