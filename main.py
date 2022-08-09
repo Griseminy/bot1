@@ -935,7 +935,7 @@ def handler(update, context):
                             else:
                                 purch.amount += amount_brend_zavoz
                                 amount_brend_zavoz = 0
-                            db_sess.add(purch.amount)
+                            db_sess.add(purch)
                             db_sess.commit()
                     db_sess.commit()
                     schetchik += 1
