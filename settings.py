@@ -1,10 +1,10 @@
 from data import db_session
 from data.deliverymen import Deliverymen
 
-deliverymen = {'Антон': 640287782, 'Aртём': 636503360, 'Максим': 1391062021}
+deliverymen = {'Глеб': 920434551, 'Aртём': 636503360, 'Максим': 1391062021}
 admin = 1904018585
 admin_2 = 754288169
-delyverymen_id = {'Антон': '@slutmee', 'Aртём': '@soberaf', 'Максим': '@Tristatridcat'}
+delyverymen_id = {'Глеб': '@An_Doctor', 'Aртём': '@soberaf', 'Максим': '@Tristatridcat'}
 text_chat = '''Наш канал t.me/GhostVapeKgn
 Переходите в закреп, там удобное меню
 
@@ -14,7 +14,7 @@ text_chat = '''Наш канал t.me/GhostVapeKgn
 @soberaf
 
 Рынок-Звёздный-Стадион-Ксм-Каравай: 
-@slutmee
+@An_Doctor
 
 Здс-Площадь-Москва-Красина
 @Tristatridcat
