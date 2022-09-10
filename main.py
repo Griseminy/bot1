@@ -1374,7 +1374,7 @@ def handler(update, context):
             if context.user_data['locality'][len(context.user_data['locality'])] == 'Старт':
                 if update.message.text == 'Наличие':
                     context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Наличие 1'
-                    reply_keyboard = [[elem + f' {delyverymen_id[elem]}'] for elem in deliverymen.keys()]
+                    reply_keyboard = [[elem + f' {delyverymen_id[elem]}'] for elem in deliverymen.keys() if elem != 'Склад']
                     reply_keyboard.append(['Отмена'])
                     update.message.reply_text('Выберите доставщика',
                                               reply_markup=ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True,
