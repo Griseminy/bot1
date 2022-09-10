@@ -1,10 +1,10 @@
 from data import db_session
 from data.deliverymen import Deliverymen
 
-deliverymen = {'Глеб': 920434551, 'Артём': 1, 'Максим': 2}
+deliverymen = {'Глеб': 920434551, 'Склад': 1}
 admin = 1904018585
 admin_2 = 754288169
-delyverymen_id = {'Глеб': '@An_Doctor', 'Артём': '@a', 'Максим': '@b'}
+delyverymen_id = {'Глеб': '@An_Doctor', 'Склад': '@sklad'}
 text_chat = '''Наш канал t.me/GhostVapeKgn
 Переходите в закреп, там удобное меню
 
