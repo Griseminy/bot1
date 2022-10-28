@@ -1,17 +1,17 @@
 from data import db_session
 from data.deliverymen import Deliverymen
 
-deliverymen = {'Глеб': 920434551, 'Склад': 1, 'Рома': 5772091686}
+deliverymen = {'Глеб': 920434551, 'Склад': 1, 'Артём': 636503360}
 admin = 1904018585
 admin_2 = 754288169
-delyverymen_id = {'Глеб': '@An_Doctor', 'Склад': '@sklad', 'Рома': '@gggangstta'}
+delyverymen_id = {'Глеб': '@An_Doctor', 'Склад': '@sklad', 'Артём': '@soberaf'}
 text_chat = '''Наш канал t.me/GhostVapeKgn
 Переходите в закреп, там удобное меню
 
 Доставка осуществляется в нижеперечисленные районы города:
 
-Рынок-Звёздный-Стадион-Каравай: 
-@An_Doctor
+Рынок-Стадион-Каравай-КСМ: 
+@soberaf
 
 Оплата производится только при получении товара!
 
