@@ -1,17 +1,14 @@
 from data import db_session
 from data.deliverymen import Deliverymen
 
-deliverymen = {'Миша': 835528178, 'Антон': 640287782, 'Склад': 1}
+deliverymen = {'Жижкин': 2071177185, 'Склад': 1}
 admin = 1904018585
-admin_2 = 635083191
-delyverymen_id = {'Миша': '@davannnnnn', 'Антон': '@slutmee', 'Склад': '@sklad'}
+admin_2 = 754288169
+delyverymen_id = {'Жижкин': '@stariy_xer_2009', 'Склад': '@sklad'}
 text_chat = '''Доставка осуществляется в нижеперечисленные районы города:
 
 Рынок-Звёздный-Стадион-Орлова : 
 @davannnnnn
-
-Рынок-Звёздный-Стадион-Орлова : 
-@slutmee
 
 Оплата производится только при получении товара!
 
