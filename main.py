@@ -14,7 +14,7 @@ from data.goods import Goods
 from data.purchase import Purchase
 from data.sales import Sales
 from settings import add_deliverymen
-from settings import admin, admin_2
+from settings import admin, admin_2, admin_3
 from settings import deliverymen
 from settings import delyverymen_id
 from settings import sberbank, alfabank
@@ -30,7 +30,7 @@ def start(update, context):
             update.message.reply_text(text_start)
             context.user_data['locality'] = {}
             context.user_data['locality'][1] = 'Старт'
-            if update.message.chat.id == admin or update.message.chat.id == admin_2:
+            if update.message.chat.id in (admin, admin_2, admin_3):
                 update.message.reply_text('Нажмите кнопки снизу',
                                           reply_markup=ReplyKeyboardMarkup([['Наличие', 'Изменить количество'],
                                                                             ['Добавить линейку', 'Изменить линейку'],
@@ -72,7 +72,7 @@ def error_handler(update, context):
         update.message.reply_text('Упс... Что-то пошло не так')
         context.user_data['locality'] = {}
         context.user_data['locality'][1] = 'Старт'
-        if update.message.chat.id == admin or update.message.chat.id == admin_2:
+        if update.message.chat.id in (admin, admin_2, admin_3):
             update.message.reply_text('Нажмите кнопки снизу',
                                       reply_markup=ReplyKeyboardMarkup([['Наличие', 'Изменить количество'],
                                                                         ['Добавить линейку', 'Изменить линейку'],
@@ -110,7 +110,7 @@ def start_menu_handler(update, context):
         if update.effective_chat.id not in chat_ids:
             context.user_data['locality'] = {}
             context.user_data['locality'][1] = 'Старт'
-            if update.message.chat.id == admin or update.message.chat.id == admin_2:
+            if update.message.chat.id in (admin, admin_2, admin_3):
                 update.message.reply_text('Возврат в меню',
                                           reply_markup=ReplyKeyboardMarkup([['Наличие', 'Изменить количество'],
                                                                             ['Добавить линейку', 'Изменить линейку'],
@@ -147,7 +147,7 @@ def start_menu_handler(update, context):
 
 def handler(update, context):
     if update.effective_chat.id not in chat_ids:
-        if update.message.chat.id == admin or update.message.chat.id == admin_2:
+        if update.message.chat.id in (admin, admin_2, admin_3):
             # Главное меню__
             if context.user_data['locality'][len(context.user_data['locality'])] == 'Старт':
                 if update.message.text == 'Добавить линейку':

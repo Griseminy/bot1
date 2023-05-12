@@ -3,12 +3,14 @@ Description=Telegram Bot
 After=network.target
 
 [Service]
-User=haz
-Group=haz
+User=tgbot
+Group=tgbot
 
-WorkingDirectory=/home/haz/tgbotghost/
-Environment="PYTHONPATH=/home/haz/tgbotghost/"
-ExecStart=/home/haz/tgbotghost/.venv/bin/python /home/haz/tgbotghost/main.py
+WorkingDirectory=/home/tgbot/tgbotghost/
+Environment="PYTHONPATH=/home/tgbot/tgbotghost/"
+ExecStart=/home/tgbot/tgbotghost/.venv/bin/python3 /home/tgbot/tgbotghost/main.py
+RestartSec=10
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
