@@ -3,12 +3,12 @@ Description=Telegram Bot
 After=network.target
 
 [Service]
-User=tgbot
-Group=tgbot
+User=root
+Group=root
 
-WorkingDirectory=/home/tgbot/tgbotghost/
-Environment="PYTHONPATH=/home/tgbot/tgbotghost/"
-ExecStart=/home/tgbot/tgbotghost/.venv/bin/python3 /home/tgbot/tgbotghost/main.py
+WorkingDirectory=/home/tgbotghost/
+Environment="PYTHONPATH=/home/tgbotghost/"
+ExecStart=/home/tgbotghost/.venv/bin/python3 /home/tgbotghost/main.py
 RestartSec=10
 Restart=always
 
