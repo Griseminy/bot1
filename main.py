@@ -21,7 +21,7 @@ from settings import sberbank, alfabank
 from settings import text_chat
 from settings import text_start_2, cities, text_start, text_success, groups, chat_ids
 
-TOKEN = '5396241931:AAHjk_hNT7fwP_xV3DOyWn6kWXA9EDqQRbc'
+TOKEN = '6295676229:AAH7HMXMEhmO1pbtHduWfKV6nOl3fMgVJ30'
 
 
 def start(update, context):
