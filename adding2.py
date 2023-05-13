@@ -5,7 +5,7 @@ from data.deliverymen import Deliverymen
 from data.delivery_goods import Delivery_goods
 
 
-
+db_session.global_init(f"db/goods.db")
 
 with open('vkusy.txt', mode='r', encoding="utf8") as f:
     for elem in f.read().split('\n\n\n'):
