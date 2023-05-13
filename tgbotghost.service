@@ -4,11 +4,10 @@ After=network.target
 
 [Service]
 User=root
-Group=root
 
 WorkingDirectory=/home/tgbotghost/
 Environment="PYTHONPATH=/home/tgbotghost/"
-ExecStart=/home/tgbotghost/.venv/bin/python3 /home/tgbotghost/main.py
+ExecStart=/usr/bin/python3 /home/tgbotghost/main.py
 RestartSec=10
 Restart=always
 
