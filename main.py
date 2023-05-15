@@ -1735,7 +1735,7 @@ def main():
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command | Filters.document | Filters.photo,
                                   handler, run_async=True))
     dp.add_handler(CallbackQueryHandler(forward_query_handler, run_async=True))
-    #dp.add_error_handler(error_handler)
+    dp.add_error_handler(error_handler)
     updater.start_polling()
     updater.idle()
 
