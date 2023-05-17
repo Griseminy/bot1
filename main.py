@@ -21,7 +21,7 @@ from settings import sberbank, alfabank
 from settings import text_chat
 from settings import text_start_2, cities, text_start, text_success, groups, chat_ids
 
-TOKEN = '6295676229:AAH7HMXMEhmO1pbtHduWfKV6nOl3fMgVJ30'
+TOKEN = '6249913182:AAHNKeRxn01zRM2beITRe620S82-a22Q5tA'
 
 
 def start(update, context):
@@ -37,7 +37,7 @@ def start(update, context):
                                                                             ['Проверка', 'Статистика'],
                                                                             ['Получить форму', 'Выслать форму'],
                                                                             ['Новый закуп', 'Добавить описание'],
-                                                                            ['Описание вкусов', 'Добавить объявление']],
+                                                                            ['Описание вкусов']],
                                                                            resize_keyboard=True,
                                                                            one_time_keyboard=True))
             elif update.message.chat.id in deliverymen.values():
@@ -50,8 +50,7 @@ def start(update, context):
                                                                             [
                                                                                 'Отправить на проверку',
                                                                                 'Нужно перевести'],
-                                                                            ['Описание вкусов',
-                                                                             'Добавить объявление']],
+                                                                            ['Описание вкусов']],
                                                                            resize_keyboard=True,
                                                                            one_time_keyboard=True))
             else:
@@ -59,8 +58,7 @@ def start(update, context):
                 update.message.reply_text('Нажмите кнопки на клавиатуре',
                                           reply_markup=ReplyKeyboardMarkup([['Наличие'],
                                                                             ['Описание вкусов'],
-                                                                            ['Доставка'],
-                                                                            ['Добавить объявление']],
+                                                                            ['Доставка']],
                                                                            resize_keyboard=True,
                                                                            one_time_keyboard=True))
     except:
@@ -79,7 +77,7 @@ def error_handler(update, context):
                                                                         ['Проверка', 'Статистика'],
                                                                         ['Получить форму', 'Выслать форму'],
                                                                         ['Новый закуп', 'Добавить описание'],
-                                                                        ['Описание вкусов', 'Добавить объявление']],
+                                                                        ['Описание вкусов']],
                                                                        resize_keyboard=True,
                                                                        one_time_keyboard=True))
         elif update.message.chat.id in deliverymen.values():
@@ -91,16 +89,14 @@ def error_handler(update, context):
                                                                                                 [
                                                                                                     'Отправить на проверку',
                                                                                                     'Нужно перевести'],
-                                                                                                ['Описание вкусов',
-                                                                                                 'Добавить объявление']],
+                                                                                                ['Описание вкусов']],
                                                                                                resize_keyboard=True,
                                                                                                one_time_keyboard=True))
         else:
             update.message.reply_text('Нажмите кнопки на клавиатуре',
                                       reply_markup=ReplyKeyboardMarkup([['Наличие'],
                                                                         ['Описание вкусов'],
-                                                                        ['Доставка'],
-                                                                        ['Добавить объявление']],
+                                                                        ['Доставка']],
                                                                        resize_keyboard=True,
                                                                        one_time_keyboard=True))
 
@@ -117,7 +113,7 @@ def start_menu_handler(update, context):
                                                                             ['Проверка', 'Статистика'],
                                                                             ['Получить форму', 'Выслать форму'],
                                                                             ['Новый закуп', 'Добавить описание'],
-                                                                            ['Описание вкусов', 'Добавить объявление']],
+                                                                            ['Описание вкусов']],
                                                                            resize_keyboard=True,
                                                                            one_time_keyboard=True))
             elif update.message.chat.id in deliverymen.values():
@@ -129,16 +125,14 @@ def start_menu_handler(update, context):
                                                                                               [
                                                                                                   'Отправить на проверку',
                                                                                                   'Нужно перевести'],
-                                                                                              ['Описание вкусов',
-                                                                                               'Добавить объявление']],
+                                                                                              ['Описание вкусов']],
                                                                                              resize_keyboard=True,
                                                                                              one_time_keyboard=True))
             else:
                 update.message.reply_text('Возврат в меню',
                                           reply_markup=ReplyKeyboardMarkup([['Наличие'],
                                                                             ['Описание вкусов'],
-                                                                            ['Доставка'],
-                                                                            ['Добавить объявление']],
+                                                                            ['Доставка']],
                                                                            resize_keyboard=True,
                                                                            one_time_keyboard=True))
     except:
