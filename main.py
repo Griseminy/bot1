@@ -1445,7 +1445,7 @@ def handler(update, context):
                     update.message.reply_photo(photo=open(brend.photo_link, 'rb'),
                                                caption=f"{brend.brend} {brend.price} рублей\n\n"
                                                        f"{open(brend.txt_file, 'r').read()}\n\n"
-                                                       f"Наш канал t.me/GhostVapeKgn")
+                                                       f"Наш канал t.me/MoonVapeKgn")
                     return start_menu_handler(update, context)
             elif context.user_data['locality'][len(context.user_data['locality'])] == 'Добавить объявление':
                 if update.message.caption == 'Назад' or update.message.text == 'Назад':
@@ -1680,8 +1680,8 @@ def forward_query_handler(update, context):
         variant = query.data
         if variant == 'Принять':
             reply_keyboard = InlineKeyboardMarkup(
-                [[InlineKeyboardButton('Добавить объявление', url='https://t.me/GhostVapebot')],
-                 [InlineKeyboardButton('Купить жидкость', url='https://t.me/GhostVapeKgn/34')]])
+                [[InlineKeyboardButton('Добавить объявление', url='https://t.me/MoonVapebot')],
+                 [InlineKeyboardButton('Купить жидкость', url='https://t.me/MoonVapeKgn/393')]])
             if query.message.photo != []:
                 context.bot.send_photo(chat_id=groups[update.effective_chat.id],
                                        photo=update.callback_query.message.photo[-1].get_file().file_id,
