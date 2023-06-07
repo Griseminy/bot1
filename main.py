@@ -675,7 +675,8 @@ def handler(update, context):
                     text_amount = f'Общее наличие:\n'
                     for elem in sorted(db_sess.query(Brends).all(), key=lambda x: -(x.price)):
                         text_amount += f'\n{elem.brend} {elem.price} рублей\n'
-                        for ele in db_sess.query(Goods).filter(Goods.brend == elem).all():
+                        for ele in sorted(db_sess.query(Goods).filter(Goods.brend == elem).all(),
+                                          key=lambda x: x.title):
                             amount_good = 0
                             for el in db_sess.query(Delivery_goods).filter(Delivery_goods.good == ele).all():
                                 amount_good += el.amount
@@ -1113,7 +1114,8 @@ def handler(update, context):
                     for elem in sorted(db_sess.query(Brends).all(), key=lambda x: -(x.price)):
                         if get_amount_brend(elem, deliver) > 0:
                             text_amount += f'\n{elem.brend} {elem.price} рублей\n'
-                            for el in db_sess.query(Goods).filter(Goods.brend == elem).all():
+                            for el in sorted(db_sess.query(Goods).filter(Goods.brend == elem).all(),
+                                            key=lambda x: x.title):
                                 deliv_good = db_sess.query(Delivery_goods).filter(
                                     Delivery_goods.good == el,
                                     Delivery_goods.deliveryman == deliver).first()
@@ -1209,8 +1211,8 @@ def handler(update, context):
                     context.user_data['sell_good'] = {'brend_id': brend_id}
                     reply_keyboard = [[f"{elem.title} - "
                                        f"{get_amount_2(db_sess, elem, context.user_data['user_id_db'])}"]
-                                      for elem in db_sess.query(Goods).filter(Goods.brend_id == brend_id).all() if
-                                      get_amount_2(
+                                      for elem in sorted(db_sess.query(Goods).filter(Goods.brend_id == brend_id).all(),
+                                      key=lambda x: x.title) if get_amount_2(
                                           db_sess,
                                           elem,
                                           context.user_data['user_id_db']) > 0]
@@ -1425,7 +1427,8 @@ def handler(update, context):
                     deliver = db_sess.query(Deliverymen).get(context.user_data['user'])
                     text_amount = f'Жидкость {brend_good.brend + " " + str(brend_good.price)} рублей у' \
                                   f' {delyverymen_id[deliver.name]}:\n'
-                    for el in db_sess.query(Goods).filter(Goods.brend == brend_good).all():
+                    for el in sorted(db_sess.query(Goods).filter(Goods.brend == brend_good).all(),
+                                          key=lambda x: x.title):
                         deliv_good = db_sess.query(Delivery_goods).filter(
                             Delivery_goods.good == el,
                             Delivery_goods.deliveryman == deliver).first()
