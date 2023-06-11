@@ -36,8 +36,8 @@ def start(update, context):
                                                                             ['Добавить линейку', 'Изменить линейку'],
                                                                             ['Проверка', 'Статистика'],
                                                                             ['Получить форму', 'Выслать форму'],
-                                                                            ['Новый закуп', 'Добавить описание'],
-                                                                            ['Описание вкусов']],
+                                                                            ['Новый закуп', 'Стоит закупить'],
+                                                                            ['Добавить описание', 'Описание вкусов']],
                                                                            resize_keyboard=True,
                                                                            one_time_keyboard=True))
             elif update.message.chat.id in deliverymen.values():
@@ -76,8 +76,8 @@ def error_handler(update, context):
                                                                         ['Добавить линейку', 'Изменить линейку'],
                                                                         ['Проверка', 'Статистика'],
                                                                         ['Получить форму', 'Выслать форму'],
-                                                                        ['Новый закуп', 'Добавить описание'],
-                                                                        ['Описание вкусов']],
+                                                                        ['Новый закуп', 'Стоит закупить'],
+                                                                        ['Добавить описание', 'Описание вкусов']],
                                                                        resize_keyboard=True,
                                                                        one_time_keyboard=True))
         elif update.message.chat.id in deliverymen.values():
@@ -112,8 +112,8 @@ def start_menu_handler(update, context):
                                                                             ['Добавить линейку', 'Изменить линейку'],
                                                                             ['Проверка', 'Статистика'],
                                                                             ['Получить форму', 'Выслать форму'],
-                                                                            ['Новый закуп', 'Добавить описание'],
-                                                                            ['Описание вкусов']],
+                                                                            ['Новый закуп', 'Стоит закупить'],
+                                                                            ['Добавить описание', 'Описание вкусов']],
                                                                            resize_keyboard=True,
                                                                            one_time_keyboard=True))
             elif update.message.chat.id in deliverymen.values():
@@ -175,6 +175,15 @@ def handler(update, context):
                     reply_keyboard.append(['Общее'])
                     reply_keyboard.append(['Назад'])
                     context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Наличие'
+                    update.message.reply_text('Выберите доставщика',
+                                              reply_markup=ReplyKeyboardMarkup(reply_keyboard,
+                                                                               resize_keyboard=True,
+                                                                               one_time_keyboard=True))
+                elif update.message.text == 'Стоит закупить':
+                    reply_keyboard = [[elem] for elem in deliverymen]
+                    reply_keyboard.append(['Общее'])
+                    reply_keyboard.append(['Назад'])
+                    context.user_data['locality'][len(context.user_data['locality']) + 1] = 'Стоит закупить'
                     update.message.reply_text('Выберите доставщика',
                                               reply_markup=ReplyKeyboardMarkup(reply_keyboard,
                                                                                resize_keyboard=True,
@@ -702,6 +711,19 @@ def handler(update, context):
                             update.message.reply_text(text_amount[i * 4000: (i + 1) * 4000])
                     else:
                         update.message.reply_text(text_amount)
+                    return start_menu_handler(update, context)
+                else:
+                    return error_handler(update, context)
+            elif context.user_data['locality'][len(context.user_data['locality'])] == 'Стоит закупить':
+                if update.message.text == 'Назад':
+                    return start_menu_handler(update, context)
+                elif update.message.text in deliverymen or update.message.text == 'Общее':
+                    text_worth_buying = worth_buying(update.message.text)
+                    if len(text_worth_buying) > 4000:
+                        for i in range(len(text_worth_buying) // 4000 + 1):
+                            update.message.reply_text(text_worth_buying[i * 4000: (i + 1) * 4000])
+                    else:
+                        update.message.reply_text(worth_buying(update.message.text))
                     return start_menu_handler(update, context)
                 else:
                     return error_handler(update, context)
@@ -1723,6 +1745,50 @@ def forward_query_handler(update, context):
                     chat_id=int(update.callback_query.message.text.split('\n\n')[-1].split(' ')[3]),
                     text=f'Ваше объявление отклонено в {groups[update.effective_chat.id]}')
         update.callback_query.message.delete()
+
+
+def worth_buying(name):
+    db_sess = db_session.create_session()
+    if name == 'Общее':
+        text_amount = f'Стоит закупить в общем:\n'
+        for brend in sorted(db_sess.query(Brends).all(), key=lambda x: -(x.price)):
+            text_amount += f'\n{brend.brend}\n'
+            for good in sorted(db_sess.query(Goods).filter(Goods.brend == brend).all(),
+                              key=lambda x: x.title):
+                difference_amount = 0
+                for delivery_good in db_sess.query(Delivery_goods).filter(Delivery_goods.good == good).all():
+                    difference_amount += delivery_good.amount - amount_delivery_good_in_sales(delivery_good.id)
+                text_amount += f'{good.title} {round(abs(difference_amount), 2) if difference_amount < 0 else 0}\n'
+    elif (name,) in db_sess.query(Deliverymen.name).all():
+        deliver = db_sess.query(Deliverymen).filter(Deliverymen.name == name).first()
+        text_amount = f'Стоит закупить к {deliver.name}:\n'
+        for brend in sorted(db_sess.query(Brends).all(), key=lambda x: -(x.price)):
+            text_amount += f'\n{brend.brend}\n'
+            for good in db_sess.query(Goods).filter(Goods.brend == brend).all():
+                deliv_good = db_sess.query(Delivery_goods).filter(
+                    Delivery_goods.good == good,
+                    Delivery_goods.deliveryman == deliver).first()
+                difference_amount = deliv_good.amount - amount_delivery_good_in_sales(deliv_good.id,
+                                                                                      delievery_man=deliver)
+                text_amount += f'{good.title} {round(abs(difference_amount), 2) if difference_amount < 0 else 0}\n'
+    return text_amount
+
+
+def amount_delivery_good_in_sales(id_good, delievery_man=None):
+    db_sess = db_session.create_session()
+    counter = 0
+    if delievery_man:
+        sales_db = db_sess.query(Sales).filter(Sales.deliveryman == delievery_man,
+                                                datetime.datetime.now() - datetime.timedelta(days=28) < datetime.datetime.now()).all()
+        for sale in sales_db:
+            counter += list(map(lambda x: x.split('.')[0], sale.deliverygood_ids.split('&'))).count(str(id_good))
+
+    else:
+        sales_db = db_sess.query(Sales).filter(Sales.deliveryman_id != 3,
+                                               datetime.datetime.now() - datetime.timedelta(days=28) < datetime.datetime.now()).all()
+        for sale in sales_db:
+            counter += list(map(lambda x: x.split('.')[0], sale.deliverygood_ids.split('&'))).count(str(id_good))
+    return counter / (len(sales_db) / 14)
 
 
 def main():
